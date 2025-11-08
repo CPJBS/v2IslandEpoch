@@ -22,6 +22,7 @@ class BuildingManager {
     func build(
         _ type: BuildingType,
         onIslandIndex islandIndex: Int,
+        atSlotIndex slotIndex: Int? = nil,
         gameState: inout GameState
     ) -> Result<UUID, BuildError> {
 
@@ -55,16 +56,30 @@ class BuildingManager {
         let buildingId = UUID()
         let building = Building(id: buildingId, type: type)
 
-        // 5. Find first empty slot
-        guard let emptySlotIndex = gameState.islands[islandIndex].buildings.firstIndex(where: { $0 == nil }) else {
-            return .failure(.noSlots)
+        // 5. Determine target slot index
+        let targetSlotIndex: Int
+        if let slotIndex = slotIndex {
+            // Use specific slot if provided
+            guard slotIndex >= 0 && slotIndex < gameState.islands[islandIndex].buildings.count else {
+                return .failure(.buildingNotFound)
+            }
+            guard gameState.islands[islandIndex].buildings[slotIndex] == nil else {
+                return .failure(.noSlots) // Slot is already occupied
+            }
+            targetSlotIndex = slotIndex
+        } else {
+            // Find first empty slot
+            guard let emptySlotIndex = gameState.islands[islandIndex].buildings.firstIndex(where: { $0 == nil }) else {
+                return .failure(.noSlots)
+            }
+            targetSlotIndex = emptySlotIndex
         }
 
         // 6. Update state
         gameState.gold -= type.goldCost
-        gameState.islands[islandIndex].buildings[emptySlotIndex] = building
+        gameState.islands[islandIndex].buildings[targetSlotIndex] = building
 
-        AppLogger.building.info("Built \(type.name) for \(type.goldCost) gold at slot \(emptySlotIndex)")
+        AppLogger.building.info("Built \(type.name) for \(type.goldCost) gold at slot \(targetSlotIndex)")
 
         return .success(buildingId)
     }
