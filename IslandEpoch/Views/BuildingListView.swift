@@ -61,7 +61,7 @@ struct BuildingListView: View {
                 Section("Island Info") {
                     if let island = vm.mainIsland {
                         LabeledContent("Island", value: island.name)
-                        LabeledContent("Workers", value: "\(island.workersAvailable)")
+                        LabeledContent("Available Workers", value: "\(island.workersAvailable - island.totalWorkersAssigned)")
                         LabeledContent("Slots Used", value: "\(island.buildings.compactMap { $0 }.count)/\(island.maxSlots)")
                     }
                 }
@@ -112,7 +112,7 @@ struct BuildingListView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "person.3")
                         .font(.caption)
-                    Text("\(building.type.workers) workers")
+                    Text("Requires \(building.type.workers) workers")
                         .font(.caption)
                 }
                 .foregroundColor(.secondary)
@@ -141,7 +141,7 @@ struct BuildingListView: View {
                     Label {
                         VStack(alignment: .leading) {
                             Text(type.name)
-                            Text("\(type.goldCost) gold • \(type.workers) workers")
+                            Text("\(type.goldCost) gold • Requires \(type.workers) workers")
                                 .font(.caption)
                         }
                     } icon: {
