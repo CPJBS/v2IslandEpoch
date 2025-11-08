@@ -51,30 +51,30 @@ class BuildingManager {
                 available: gameState.gold
             ))
         }
-        
+
         // 2. Check building slots
-        guard island.hasAvailableSlots else {
+        guard gameState.islands[islandIndex].hasAvailableSlots else {
             return .failure(.noSlots)
         }
-        
+
         // 3. Check workers
-        guard island.workersAvailable >= type.workers else {
+        guard gameState.islands[islandIndex].workersAvailable >= type.workers else {
             return .failure(.insufficientWorkers(
                 required: type.workers,
-                available: island.workersAvailable
+                available: gameState.islands[islandIndex].workersAvailable
             ))
         }
-        
+
         // 4. Create building
         let buildingId = UUID()
         let building = Building(id: buildingId, type: type)
-        
+
         // 5. Update state
         gameState.gold -= type.goldCost
         gameState.islands[islandIndex].buildings.append(building)
         
         AppLogger.building.info("Built \(type.name) for \(type.goldCost) gold")
-        
+
         return .success(buildingId)
     }
     
@@ -101,18 +101,22 @@ class BuildingManager {
         guard let index = island.buildings.firstIndex(where: { $0.id == buildingId }) else {
             return .failure(.buildingNotFound)
         }
-        
-        let building = island.buildings[index]
-        
+
+        guard let index = gameState.islands[islandIndex].buildings.firstIndex(where: { $0.id == buildingId }) else {
+            return .failure(.buildingNotFound)
+        }
+
+        let building = gameState.islands[islandIndex].buildings[index]
+
         // Remove building
-        island.buildings.remove(at: index)
-        
+        gameState.islands[islandIndex].buildings.remove(at: index)
+
         // Refund 50% gold
         let refund = building.type.goldCost / 2
         gameState.gold += refund
-        
+
         AppLogger.building.info("Demolished \(building.type.name), refunded \(refund) gold")
-        
+
         return .success(())
     }
 }
