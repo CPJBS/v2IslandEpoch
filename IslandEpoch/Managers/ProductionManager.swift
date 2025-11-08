@@ -28,7 +28,7 @@ class ProductionManager {
     /// Calculate total production across all islands
     func totalProduction(gameState: GameState) -> Inventory {
         var total: Inventory = [:]
-        
+
         for island in gameState.islands {
             for building in island.buildings {
                 for (resource, amount) in building.type.produces {
@@ -36,7 +36,22 @@ class ProductionManager {
                 }
             }
         }
-        
+
+        return total
+    }
+
+    /// Calculate total consumption across all islands
+    func totalConsumption(gameState: GameState) -> Inventory {
+        var total: Inventory = [:]
+
+        for island in gameState.islands {
+            for building in island.buildings {
+                for (resource, amount) in building.type.consumes {
+                    total.add(resource, amount: amount)
+                }
+            }
+        }
+
         return total
     }
     
