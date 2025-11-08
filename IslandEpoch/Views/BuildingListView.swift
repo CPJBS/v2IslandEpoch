@@ -112,8 +112,13 @@ struct BuildingListView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "person.3")
                         .font(.caption)
-                    Text("Requires \(building.type.workers) workers")
-                        .font(.caption)
+                    if building.type.providesWorkers > 0 {
+                        Text("Provides \(building.type.providesWorkers) workers")
+                            .font(.caption)
+                    } else if building.type.workers > 0 {
+                        Text("Requires \(building.type.workers) workers")
+                            .font(.caption)
+                    }
                 }
                 .foregroundColor(.secondary)
             }
@@ -141,8 +146,16 @@ struct BuildingListView: View {
                     Label {
                         VStack(alignment: .leading) {
                             Text(type.name)
-                            Text("\(type.goldCost) gold • Requires \(type.workers) workers")
-                                .font(.caption)
+                            if type.providesWorkers > 0 {
+                                Text("\(type.goldCost) gold • Provides \(type.providesWorkers) workers")
+                                    .font(.caption)
+                            } else if type.workers > 0 {
+                                Text("\(type.goldCost) gold • Requires \(type.workers) workers")
+                                    .font(.caption)
+                            } else {
+                                Text("\(type.goldCost) gold")
+                                    .font(.caption)
+                            }
                         }
                     } icon: {
                         Image(systemName: type.icon)
