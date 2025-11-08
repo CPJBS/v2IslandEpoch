@@ -50,7 +50,11 @@ struct BuildingDetailView: View {
 
                 // Details Section
                 Section("Details") {
-                    LabeledContent("Requires Workers", value: "\(building.type.workers)")
+                    if building.type.providesWorkers > 0 {
+                        LabeledContent("Provides Workers", value: "\(building.type.providesWorkers)")
+                    } else if building.type.workers > 0 {
+                        LabeledContent("Requires Workers", value: "\(building.type.workers)")
+                    }
                     LabeledContent("Build Cost", value: "\(building.type.goldCost) gold")
                 }
 
