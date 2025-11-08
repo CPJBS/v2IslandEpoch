@@ -106,6 +106,14 @@ class BuildingManager {
             return .failure(.buildingNotFound)
         }
 
+        // Prevent demolishing the last tent
+        if building.type.id == "tent" {
+            let tentCount = gameState.islands[islandIndex].buildings.compactMap { $0 }.filter { $0.type.id == "tent" }.count
+            if tentCount <= 1 {
+                return .failure(.cannotDemolishLastTent)
+            }
+        }
+
         // Clear the slot (set to nil instead of removing)
         gameState.islands[islandIndex].buildings[index] = nil
 
@@ -126,7 +134,8 @@ enum BuildError: Error, LocalizedError {
     case noSlots
     case insufficientWorkers(required: Int, available: Int)
     case buildingNotFound
-    
+    case cannotDemolishLastTent
+
     var errorDescription: String? {
         switch self {
         case .insufficientGold(let required, let available):
@@ -137,6 +146,8 @@ enum BuildError: Error, LocalizedError {
             return "Need \(required) workers (have \(available))"
         case .buildingNotFound:
             return "Building not found"
+        case .cannotDemolishLastTent:
+            return "Cannot demolish the last tent - you need at least one for housing"
         }
     }
 }
