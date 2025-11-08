@@ -50,7 +50,7 @@ struct BuildingDetailView: View {
 
                 // Details Section
                 Section("Details") {
-                    LabeledContent("Workers", value: "\(building.type.workers)")
+                    LabeledContent("Requires Workers", value: "\(building.type.workers)")
                     LabeledContent("Build Cost", value: "\(building.type.goldCost) gold")
                 }
 
