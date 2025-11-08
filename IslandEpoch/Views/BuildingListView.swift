@@ -51,7 +51,7 @@ struct BuildingListView: View {
                             if let building = building {
                                 buildingRow(building)
                             } else {
-                                emptySlotRow()
+                                emptySlotRow(atIndex: index)
                             }
                         }
                     }
@@ -131,12 +131,12 @@ struct BuildingListView: View {
     }
     
     // MARK: - Empty Slot Row
-    
-    private func emptySlotRow() -> some View {
+
+    private func emptySlotRow(atIndex index: Int) -> some View {
         Menu {
             ForEach(BuildingType.all, id: \.id) { type in
                 Button {
-                    buildBuilding(type)
+                    buildBuilding(type, atSlotIndex: index)
                 } label: {
                     Label {
                         VStack(alignment: .leading) {
@@ -155,7 +155,7 @@ struct BuildingListView: View {
                     .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [5]))
                     .frame(width: 40, height: 40)
                     .foregroundColor(.gray)
-                
+
                 VStack(alignment: .leading) {
                     Text("Empty Slot")
                         .font(.headline)
@@ -164,9 +164,9 @@ struct BuildingListView: View {
                         .font(.subheadline)
                         .foregroundColor(.blue)
                 }
-                
+
                 Spacer()
-                
+
                 Image(systemName: "plus.circle.fill")
                     .font(.title2)
                     .foregroundColor(.blue)
@@ -175,9 +175,9 @@ struct BuildingListView: View {
     }
     
     // MARK: - Actions
-    
-    private func buildBuilding(_ type: BuildingType) {
-        let result = vm.buildBuilding(type, onIslandIndex: 0)
+
+    private func buildBuilding(_ type: BuildingType, atSlotIndex slotIndex: Int) {
+        let result = vm.buildBuilding(type, onIslandIndex: 0, atSlotIndex: slotIndex)
 
         switch result {
         case .success:

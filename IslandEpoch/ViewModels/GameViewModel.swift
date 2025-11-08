@@ -87,18 +87,20 @@ final class GameViewModel: ObservableObject {
     }
     
     // MARK: - Building Actions
-    
+
     func buildBuilding(
         _ type: BuildingType,
-        onIslandIndex index: Int
+        onIslandIndex index: Int,
+        atSlotIndex slotIndex: Int? = nil
     ) -> Result<UUID, BuildError> {
         guard index < gameState.islands.count else {
             return .failure(.buildingNotFound)
         }
-        
+
         return buildingManager.build(
             type,
             onIslandIndex: index,
+            atSlotIndex: slotIndex,
             gameState: &gameState
         )
     }
