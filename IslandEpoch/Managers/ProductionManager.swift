@@ -43,9 +43,6 @@ class ProductionManager {
     // MARK: - Private Methods
     
     private func processIslandTick(island: inout Island) {
-        var produced: Inventory = [:]
-        var consumed: Inventory = [:]
-        
         for building in island.buildings {
             // 1. Check worker requirement
             guard island.workersAvailable >= building.type.workers else {
@@ -66,19 +63,12 @@ class ProductionManager {
             // 3. Consume inputs
             for (resource, amount) in building.type.consumes {
                 island.inventory.remove(resource, amount: amount)
-                consumed.add(resource, amount: amount)
             }
             
             // 4. Produce outputs
             for (resource, amount) in building.type.produces {
                 island.inventory.add(resource, amount: amount)
-                produced.add(resource, amount: amount)
             }
-        }
-        
-        // Log if anything produced
-        if !produced.isEmpty {
-            AppLogger.production.debug("Island '\(island.name)' produced: \(produced)")
         }
     }
 }
