@@ -45,10 +45,12 @@ class BuildingManager {
         }
 
         // 3. Check workers
-        guard gameState.islands[islandIndex].workersAvailable >= type.workers else {
+        let island = gameState.islands[islandIndex]
+        let workersNeeded = island.totalWorkersAssigned + type.workers
+        guard island.workersAvailable >= workersNeeded else {
             return .failure(.insufficientWorkers(
-                required: type.workers,
-                available: gameState.islands[islandIndex].workersAvailable
+                required: workersNeeded,
+                available: island.workersAvailable
             ))
         }
 
