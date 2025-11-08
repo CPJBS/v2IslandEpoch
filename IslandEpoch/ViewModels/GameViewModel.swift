@@ -78,7 +78,7 @@ final class GameViewModel: ObservableObject {
         productionManager.processTick(gameState: &gameState)
         
         // 4. Auto-save every 30 ticks
-        if gameState.tick % 30 == 0 {
+        if gameState.tick % 10 == 0 {
             saveGame()
         }
         
