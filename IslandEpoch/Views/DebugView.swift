@@ -2,14 +2,6 @@
 //  DebugView.swift
 //  IslandEpoch
 //
-//  Created by Casper Stienstra on 08/11/2025.
-//
-
-
-//
-//  DebugView.swift
-//  IslandEpoch
-//
 
 import SwiftUI
 
@@ -20,14 +12,16 @@ struct DebugView: View {
         NavigationStack {
             List {
                 // Time Section
-                Section("Game Time") {
+                Section {
                     LabeledContent("Ticks", value: "\(vm.gameState.tick)")
                     LabeledContent("Total Time", value: formatTime(vm.gameState.totalGameTime))
                     LabeledContent("Started", value: vm.gameState.gameStartTime, format: .dateTime)
+                } header: {
+                    Text("Game Time")
                 }
                 
                 // Production Section
-                Section("Production") {
+                Section {
                     let production = vm.totalProduction()
                     
                     if production.isEmpty {
@@ -46,10 +40,12 @@ struct DebugView: View {
                             }
                         }
                     }
+                } header: {
+                    Text("Production")
                 }
                 
                 // Save Management Section
-                Section("Save Management") {
+                Section {
                     Button {
                         vm.saveGame()
                     } label: {
@@ -69,21 +65,21 @@ struct DebugView: View {
                         Label("Delete Save", systemImage: "trash")
                     }
                     .disabled(!vm.hasSaveFile())
+                } header: {
+                    Text("Save Management")
                 } footer: {
-                    if vm.hasSaveFile() {
-                        Text("Save file exists")
-                    } else {
-                        Text("No save file")
-                    }
+                    Text(vm.hasSaveFile() ? "Save file exists" : "No save file")
                 }
                 
                 // Game Control Section
-                Section("Game Control") {
+                Section {
                     Button {
                         vm.startNewGame()
                     } label: {
                         Label("New Game", systemImage: "plus.circle")
                     }
+                } header: {
+                    Text("Game Control")
                 } footer: {
                     Text("This will reset all progress")
                 }

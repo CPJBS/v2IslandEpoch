@@ -2,104 +2,185 @@
 //  BuildingListView.swift
 //  IslandEpoch
 //
-//  Created by Casper Stienstra on 14/05/2025.
-//
 
 import SwiftUI
 
-struct BuildingSlot: Identifiable {
-    let id = UUID()
-    let name: String
-    let iconName: String?
-    let level: Int?
-    let production: String?
-    let workers: Int?
-}
-
 struct BuildingListView: View {
-    let onMenuTap: () -> Void
-    let onIslandTap: () -> Void
-
     @EnvironmentObject var vm: GameViewModel
-
-    // Placeholder slots; later bind to `vm.brain`
-    let slots: [BuildingSlot] = [
-        .init(name: "Farm",        iconName: "leaf.fill",            level: 1, production: "2 wheat/sec", workers: 2),
-        .init(name: "Lumber Mill", iconName: "leaf.arrow.circlepath", level: 1, production: "2 wood/sec",  workers: 2),
-        .init(name: "Mine",        iconName: "cube.box.fill",         level: 1, production: "1 ore/sec",   workers: 3),
-        .init(name: "Empty Slot",  iconName: nil,                     level: nil, production: nil,           workers: nil),
-        .init(name: "Empty Slot",  iconName: nil,                     level: nil, production: nil,           workers: nil),
-    ]
-
+    @State private var showAlert = false
+    @State private var alertMessage = ""
+    
     var body: some View {
-        VStack(spacing: 0) {
-            HeaderView(
-                title: "Buildings",
-                onMenuTap: onMenuTap,
-                onIslandTap: onIslandTap
-            )
-
-            ScrollView {
-                VStack(spacing: 16) {
-                    ForEach(slots) { slot in
-                        HStack(spacing: 12) {
-                            if let icon = slot.iconName {
-                                Image(systemName: icon)
-                                    .font(.title2)
-                                    .frame(width: 40, height: 40)
-                            } else {
-                                RoundedRectangle(cornerRadius: 4)
-                                    .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [5]))
-                                    .frame(width: 40, height: 40)
+        NavigationStack {
+            List {
+                // Game Stats Section
+                Section("Resources") {
+                    HStack {
+                        Image(systemName: "dollarsign.circle.fill")
+                            .foregroundColor(.yellow)
+                        Text("Gold")
+                        Spacer()
+                        Text("\(vm.gameState.gold)")
+                            .bold()
+                    }
+                    
+                    if let island = vm.mainIsland {
+                        ForEach(ResourceType.allCases, id: \.self) { resource in
+                            HStack {
+                                Image(systemName: resource.icon)
+                                    .foregroundColor(.green)
+                                Text(resource.displayName)
+                                Spacer()
+                                Text("\(island.inventory[resource, default: 0])")
+                                    .bold()
                             }
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack {
-                                    Text(slot.name).font(.headline)
-                                    if let lvl = slot.level {
-                                        Text("Lv\(lvl)")
-                                            .font(.subheadline)
-                                            .foregroundColor(.gray)
-                                    }
-                                }
-                                if let prod = slot.production, let wk = slot.workers {
-                                    Text(prod)
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
-                                    HStack(spacing: 4) {
-                                        Text("-\(wk)")
-                                            .font(.subheadline)
-                                            .foregroundColor(.gray)
-                                        Image(systemName: "person.3.sequence")
-                                            .foregroundColor(.gray)
-                                    }
-                                } else {
-                                    Text("Tap to build")
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                            Spacer()
-                        }
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(8)
-                        .padding(.horizontal)
-                        .onTapGesture {
-                            print("Tapped slot:", slot.name)
                         }
                     }
                 }
-                .padding(.top, 16)
+                
+                // Buildings Section
+                Section("Buildings") {
+                    if let island = vm.mainIsland {
+                        // Existing buildings
+                        ForEach(island.buildings) { building in
+                            buildingRow(building)
+                        }
+                        
+                        // Empty slots
+                        ForEach(0..<vm.emptySlots, id: \.self) { _ in
+                            emptySlotRow()
+                        }
+                    }
+                }
+                
+                // Info Section
+                Section("Island Info") {
+                    if let island = vm.mainIsland {
+                        LabeledContent("Island", value: island.name)
+                        LabeledContent("Workers", value: "\(island.workersAvailable)")
+                        LabeledContent("Slots Used", value: "\(island.buildings.count)/\(island.maxSlots)")
+                    }
+                }
+            }
+            .navigationTitle("Main Isle")
+            .alert("Action Result", isPresented: $showAlert) {
+                Button("OK") { }
+            } message: {
+                Text(alertMessage)
             }
         }
-        .edgesIgnoringSafeArea(.bottom)
+    }
+    
+    // MARK: - Building Row
+    
+    private func buildingRow(_ building: Building) -> some View {
+        HStack {
+            Image(systemName: building.type.icon)
+                .font(.title2)
+                .frame(width: 40)
+                .foregroundColor(.blue)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(building.type.name)
+                    .font(.headline)
+                Text(building.type.productionDescription)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                HStack(spacing: 4) {
+                    Image(systemName: "person.3")
+                        .font(.caption)
+                    Text("\(building.type.workers) workers")
+                        .font(.caption)
+                }
+                .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+        }
+        .contentShape(Rectangle())
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                demolishBuilding(building.id)
+            } label: {
+                Label("Demolish", systemImage: "trash")
+            }
+        }
+    }
+    
+    // MARK: - Empty Slot Row
+    
+    private func emptySlotRow() -> some View {
+        Menu {
+            ForEach(BuildingType.all, id: \.id) { type in
+                Button {
+                    buildBuilding(type)
+                } label: {
+                    Label {
+                        VStack(alignment: .leading) {
+                            Text(type.name)
+                            Text("\(type.goldCost) gold • \(type.workers) workers")
+                                .font(.caption)
+                        }
+                    } icon: {
+                        Image(systemName: type.icon)
+                    }
+                }
+            }
+        } label: {
+            HStack {
+                RoundedRectangle(cornerRadius: 4)
+                    .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [5]))
+                    .frame(width: 40, height: 40)
+                    .foregroundColor(.gray)
+                
+                VStack(alignment: .leading) {
+                    Text("Empty Slot")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    Text("Tap to build")
+                        .font(.subheadline)
+                        .foregroundColor(.blue)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "plus.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(.blue)
+            }
+        }
+    }
+    
+    // MARK: - Actions
+    
+    private func buildBuilding(_ type: BuildingType) {
+        let result = vm.buildBuilding(type, onIslandIndex: 0)
+        
+        switch result {
+        case .success:
+            alertMessage = "\(type.name) built successfully!"
+        case .failure(let error):
+            alertMessage = error.localizedDescription
+        }
+        
+        showAlert = true
+    }
+    
+    private func demolishBuilding(_ buildingId: UUID) {
+        let result = vm.demolishBuilding(buildingId, fromIslandIndex: 0)
+        
+        switch result {
+        case .success:
+            alertMessage = "Building demolished"
+        case .failure(let error):
+            alertMessage = error.localizedDescription
+        }
+        
+        showAlert = true
     }
 }
 
-struct BuildingListView_Previews: PreviewProvider {
-    static var previews: some View {
-        BuildingListView(onMenuTap: {}, onIslandTap: {})
-            .environmentObject(GameViewModel())
-    }
+#Preview {
+    BuildingListView()
+        .environmentObject(GameViewModel())
 }
