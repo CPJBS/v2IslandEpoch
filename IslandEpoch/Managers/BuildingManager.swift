@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import OSLog
 
 @MainActor
 class BuildingManager {
@@ -20,9 +21,28 @@ class BuildingManager {
     /// Build a building on specified island
     func build(
         _ type: BuildingType,
-        onIsland island: inout Island,
+        onIslandIndex islandIndex: Int,       // ← Takes index instead
         gameState: inout GameState
     ) -> Result<UUID, BuildError> {
+        
+        // Access island via gameState
+        guard islandIndex < gameState.islands.count else {
+            return .failure(.buildingNotFound)
+        }
+        
+        let island = gameState.islands[islandIndex]  // Read-only access for checks
+        
+        // Uses 'island' local variable for checks
+        guard island.hasAvailableSlots else {
+            return .failure(.noSlots)
+        }
+        
+        guard island.workersAvailable >= type.workers else {
+            return .failure(.insufficientWorkers(
+                required: type.workers,
+                available: island.workersAvailable
+            ))
+        }
         
         // 1. Check gold
         guard gameState.gold >= type.goldCost else {
@@ -51,7 +71,7 @@ class BuildingManager {
         
         // 5. Update state
         gameState.gold -= type.goldCost
-        island.buildings.append(building)
+        gameState.islands[islandIndex].buildings.append(building)
         
         AppLogger.building.info("Built \(type.name) for \(type.goldCost) gold")
         
@@ -61,9 +81,22 @@ class BuildingManager {
     /// Demolish a building
     func demolish(
         buildingId: UUID,
-        fromIsland island: inout Island,
+        fromIslandIndex islandIndex: Int,     // ← Takes index instead
         gameState: inout GameState
     ) -> Result<Void, BuildError> {
+        
+        guard islandIndex < gameState.islands.count else {
+            return .failure(.buildingNotFound)
+        }
+        
+        guard let index = gameState.islands[islandIndex].buildings.firstIndex(where: { $0.id == buildingId }) else {
+            return .failure(.buildingNotFound)
+        }
+        
+        let building = gameState.islands[islandIndex].buildings[index]
+        
+        // Remove building
+        gameState.islands[islandIndex].buildings.remove(at: index)
         
         guard let index = island.buildings.firstIndex(where: { $0.id == buildingId }) else {
             return .failure(.buildingNotFound)

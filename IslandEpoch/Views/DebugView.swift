@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import OSLog
 
 struct DebugView: View {
     @EnvironmentObject var vm: GameViewModel

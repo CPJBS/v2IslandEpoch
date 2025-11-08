@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import OSLog
 
 /// Single source of truth for all game data
 struct GameState: Codable {

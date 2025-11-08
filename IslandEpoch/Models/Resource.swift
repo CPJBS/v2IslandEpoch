@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import OSLog
 
 /// All resources in the game
 enum ResourceType: String, Codable, CaseIterable {

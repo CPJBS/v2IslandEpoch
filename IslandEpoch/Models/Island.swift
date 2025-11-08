@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import OSLog
 
 /// Island territory (pure data, no logic)
 struct Island: Identifiable, Codable {

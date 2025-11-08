@@ -6,6 +6,7 @@
 import Foundation
 import Combine
 import SwiftUI
+import OSLog
 
 @MainActor
 final class GameViewModel: ObservableObject {
@@ -24,22 +25,22 @@ final class GameViewModel: ObservableObject {
     // MARK: - Initialization
     
     init() {
-        // Load or create game state
         let saveManager = SaveManager()
         
+        let loadedGameState: GameState
         switch saveManager.load() {
-        case .success(let loadedState):
-            self.gameState = loadedState
-            AppLogger.general.info("Loaded existing game (tick: \(loadedState.tick))")
+        case .success(let state):
+            loadedGameState = state
+            AppLogger.general.info("Loaded existing game (tick: \(state.tick))")
         case .failure:
-            self.gameState = GameState.demo()
+            loadedGameState = GameState.demo()
             AppLogger.general.info("Created new game")
         }
         
-        // Initialize managers
+        self.gameState = loadedGameState
         self.saveManager = saveManager
-        self.buildingManager = BuildingManager(gameState: gameState)
-        self.productionManager = ProductionManager(gameState: gameState)
+        self.buildingManager = BuildingManager(gameState: loadedGameState)
+        self.productionManager = ProductionManager(gameState: loadedGameState)
     }
     
     // MARK: - Game Control
@@ -97,7 +98,7 @@ final class GameViewModel: ObservableObject {
         
         return buildingManager.build(
             type,
-            onIsland: &gameState.islands[index],
+            onIslandIndex: index,
             gameState: &gameState
         )
     }
@@ -112,7 +113,7 @@ final class GameViewModel: ObservableObject {
         
         return buildingManager.demolish(
             buildingId: buildingId,
-            fromIsland: &gameState.islands[index],
+            fromIslandIndex: index,
             gameState: &gameState
         )
     }
