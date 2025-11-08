@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import OSLog
 
 @main
 struct IslandEpochApp: App {

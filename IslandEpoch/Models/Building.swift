@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import OSLog
 
 /// Building instance (runtime object)
 struct Building: Identifiable, Codable, Equatable {

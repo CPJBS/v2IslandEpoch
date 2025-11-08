@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import OSLog
 
 struct ContentView: View {
     @StateObject private var vm = GameViewModel()
