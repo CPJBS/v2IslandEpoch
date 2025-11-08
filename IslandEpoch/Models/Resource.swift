@@ -11,12 +11,14 @@ enum ResourceType: String, Codable, CaseIterable {
     case wheat
     case wood
     case ironOre
+    case bread
     
     var displayName: String {
         switch self {
         case .wheat: return "Wheat"
         case .wood: return "Wood"
         case .ironOre: return "Iron Ore"
+        case .bread: return "Bread"
         }
     }
     
@@ -25,6 +27,7 @@ enum ResourceType: String, Codable, CaseIterable {
         case .wheat: return "leaf.fill"
         case .wood: return "tree.fill"
         case .ironOre: return "cube.box.fill"
+        case .bread: return "basket.fill"
         }
     }
 }
