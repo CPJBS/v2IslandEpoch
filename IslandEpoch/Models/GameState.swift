@@ -43,28 +43,30 @@ struct GameState: Codable {
     
     static func demo() -> GameState {
         var state = GameState()
-        
-        // Create main island
+
+        // Create main island with starting tent
         var mainIsland = Island(
             name: "Main Isle",
-            workersAvailable: 10,
             maxSlots: 6
         )
         mainIsland.inventory = [.wheat: 0, .wood: 0, .ironOre: 0]
-        
-        // Create secondary island
+        // Add starting tent at first slot
+        mainIsland.buildings[0] = Building(id: UUID(), type: .tent)
+
+        // Create secondary island with starting tent
         var ironIsland = Island(
             name: "Ironcliff",
-            workersAvailable: 5,
             maxSlots: 4
         )
         ironIsland.inventory = [.wheat: 0, .wood: 0, .ironOre: 0]
-        
+        // Add starting tent at first slot
+        ironIsland.buildings[0] = Building(id: UUID(), type: .tent)
+
         state.islands = [mainIsland, ironIsland]
         state.gold = 500
         state.gameStartTime = Date()
         state.lastUpdateTime = Date()
-        
+
         return state
     }
     

@@ -14,16 +14,14 @@ struct Island: Identifiable, Codable {
 
     // MARK: - Resources & Workers
     var inventory: Inventory = [:]
-    var workersAvailable: Int
 
     // MARK: - Buildings
     var buildings: [Building?] = []
     let maxSlots: Int
 
     // MARK: - Initialization
-    init(name: String, workersAvailable: Int, maxSlots: Int) {
+    init(name: String, maxSlots: Int) {
         self.name = name
-        self.workersAvailable = workersAvailable
         self.maxSlots = maxSlots
         // Initialize with fixed number of empty slots
         self.buildings = Array(repeating: nil, count: maxSlots)
@@ -39,6 +37,11 @@ struct Island: Identifiable, Codable {
         buildings.filter { $0 == nil }.count
     }
 
+    /// Workers provided by housing buildings (tents, houses, etc.)
+    var workersAvailable: Int {
+        buildings.compactMap { $0 }.reduce(0) { $0 + $1.type.providesWorkers }
+    }
+
     var totalWorkersAssigned: Int {
         buildings.compactMap { $0 }.reduce(0) { $0 + $1.type.workers }
     }
@@ -46,7 +49,7 @@ struct Island: Identifiable, Codable {
     // MARK: - Codable (with migration support)
 
     enum CodingKeys: String, CodingKey {
-        case id, name, inventory, workersAvailable, buildings, maxSlots
+        case id, name, inventory, buildings, maxSlots
     }
 
     init(from decoder: Decoder) throws {
@@ -55,7 +58,6 @@ struct Island: Identifiable, Codable {
         id = try container.decode(UUID.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
         inventory = try container.decode(Inventory.self, forKey: .inventory)
-        workersAvailable = try container.decode(Int.self, forKey: .workersAvailable)
         maxSlots = try container.decode(Int.self, forKey: .maxSlots)
 
         // Try to decode as new format [Building?] first
