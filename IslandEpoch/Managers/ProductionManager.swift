@@ -30,7 +30,7 @@ class ProductionManager {
         var total: Inventory = [:]
 
         for island in gameState.islands {
-            for building in island.buildings {
+            for building in island.buildings.compactMap({ $0 }) {
                 for (resource, amount) in building.type.produces {
                     total.add(resource, amount: amount)
                 }
@@ -45,7 +45,7 @@ class ProductionManager {
         var total: Inventory = [:]
 
         for island in gameState.islands {
-            for building in island.buildings {
+            for building in island.buildings.compactMap({ $0 }) {
                 for (resource, amount) in building.type.consumes {
                     total.add(resource, amount: amount)
                 }
@@ -58,12 +58,12 @@ class ProductionManager {
     // MARK: - Private Methods
     
     private func processIslandTick(island: inout Island) {
-        for building in island.buildings {
+        for building in island.buildings.compactMap({ $0 }) {
             // 1. Check worker requirement
             guard island.workersAvailable >= building.type.workers else {
                 continue
             }
-            
+
             // 2. Check input resources
             var canRun = true
             for (resource, amount) in building.type.consumes {
@@ -72,14 +72,14 @@ class ProductionManager {
                     break
                 }
             }
-            
+
             guard canRun else { continue }
-            
+
             // 3. Consume inputs
             for (resource, amount) in building.type.consumes {
                 island.inventory.remove(resource, amount: amount)
             }
-            
+
             // 4. Produce outputs
             for (resource, amount) in building.type.produces {
                 island.inventory.add(resource, amount: amount)

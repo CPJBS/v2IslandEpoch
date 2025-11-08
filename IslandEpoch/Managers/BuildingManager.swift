@@ -55,11 +55,16 @@ class BuildingManager {
         let buildingId = UUID()
         let building = Building(id: buildingId, type: type)
 
-        // 5. Update state
+        // 5. Find first empty slot
+        guard let emptySlotIndex = gameState.islands[islandIndex].buildings.firstIndex(where: { $0 == nil }) else {
+            return .failure(.noSlots)
+        }
+
+        // 6. Update state
         gameState.gold -= type.goldCost
-        gameState.islands[islandIndex].buildings.append(building)
-        
-        AppLogger.building.info("Built \(type.name) for \(type.goldCost) gold")
+        gameState.islands[islandIndex].buildings[emptySlotIndex] = building
+
+        AppLogger.building.info("Built \(type.name) for \(type.goldCost) gold at slot \(emptySlotIndex)")
 
         return .success(buildingId)
     }
@@ -77,21 +82,23 @@ class BuildingManager {
         }
 
         // Find building index
-        guard let index = gameState.islands[islandIndex].buildings.firstIndex(where: { $0.id == buildingId }) else {
+        guard let index = gameState.islands[islandIndex].buildings.firstIndex(where: { $0?.id == buildingId }) else {
             return .failure(.buildingNotFound)
         }
 
         // Get building for refund calculation
-        let building = gameState.islands[islandIndex].buildings[index]
+        guard let building = gameState.islands[islandIndex].buildings[index] else {
+            return .failure(.buildingNotFound)
+        }
 
-        // Remove building
-        gameState.islands[islandIndex].buildings.remove(at: index)
+        // Clear the slot (set to nil instead of removing)
+        gameState.islands[islandIndex].buildings[index] = nil
 
         // Refund 50% gold
         let refund = building.type.goldCost / 2
         gameState.gold += refund
 
-        AppLogger.building.info("Demolished \(building.type.name), refunded \(refund) gold")
+        AppLogger.building.info("Demolished \(building.type.name) from slot \(index), refunded \(refund) gold")
 
         return .success(())
     }
