@@ -33,8 +33,11 @@ struct BuildingListView: View {
                                     .foregroundColor(.green)
                                 Text(resource.displayName)
                                 Spacer()
-                                Text("\(island.inventory[resource, default: 0])")
-                                    .bold()
+                                VStack(alignment: .trailing, spacing: 2) {
+                                    Text("\(island.inventory[resource, default: 0])")
+                                        .bold()
+                                    resourceRateTicker(for: resource)
+                                }
                             }
                         }
                     }
@@ -77,8 +80,23 @@ struct BuildingListView: View {
         }
     }
     
+    // MARK: - Resource Rate Ticker
+
+    @ViewBuilder
+    private func resourceRateTicker(for resource: ResourceType) -> some View {
+        let production = vm.totalProduction()[resource, default: 0]
+        let consumption = vm.totalConsumption()[resource, default: 0]
+        let netChange = production - consumption
+
+        if netChange != 0 {
+            Text("(\(netChange > 0 ? "+" : "")\(netChange)/s)")
+                .font(.caption)
+                .foregroundColor(netChange > 0 ? .green : .red)
+        }
+    }
+
     // MARK: - Building Row
-    
+
     private func buildingRow(_ building: Building) -> some View {
         HStack {
             Image(systemName: building.type.icon)

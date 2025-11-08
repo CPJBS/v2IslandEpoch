@@ -161,4 +161,8 @@ final class GameViewModel: ObservableObject {
     func totalProduction() -> Inventory {
         productionManager.totalProduction(gameState: gameState)
     }
+
+    func totalConsumption() -> Inventory {
+        productionManager.totalConsumption(gameState: gameState)
+    }
 }
