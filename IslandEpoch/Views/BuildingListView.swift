@@ -10,7 +10,8 @@ struct BuildingListView: View {
     @EnvironmentObject var vm: GameViewModel
     @State private var showAlert = false
     @State private var alertMessage = ""
-    
+    @State private var selectedBuilding: Building?
+
     var body: some View {
         NavigationStack {
             List {
@@ -69,6 +70,10 @@ struct BuildingListView: View {
             } message: {
                 Text(alertMessage)
             }
+            .sheet(item: $selectedBuilding) { building in
+                BuildingDetailView(building: building, islandIndex: 0)
+                    .environmentObject(vm)
+            }
         }
     }
     
@@ -80,7 +85,7 @@ struct BuildingListView: View {
                 .font(.title2)
                 .frame(width: 40)
                 .foregroundColor(.blue)
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(building.type.name)
                     .font(.headline)
@@ -95,16 +100,16 @@ struct BuildingListView: View {
                 }
                 .foregroundColor(.secondary)
             }
-            
+
             Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
         .contentShape(Rectangle())
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button(role: .destructive) {
-                demolishBuilding(building.id)
-            } label: {
-                Label("Demolish", systemImage: "trash")
-            }
+        .onTapGesture {
+            selectedBuilding = building
         }
     }
     
@@ -156,27 +161,14 @@ struct BuildingListView: View {
     
     private func buildBuilding(_ type: BuildingType) {
         let result = vm.buildBuilding(type, onIslandIndex: 0)
-        
+
         switch result {
         case .success:
             alertMessage = "\(type.name) built successfully!"
         case .failure(let error):
             alertMessage = error.localizedDescription
         }
-        
-        showAlert = true
-    }
-    
-    private func demolishBuilding(_ buildingId: UUID) {
-        let result = vm.demolishBuilding(buildingId, fromIslandIndex: 0)
-        
-        switch result {
-        case .success:
-            alertMessage = "Building demolished"
-        case .failure(let error):
-            alertMessage = error.localizedDescription
-        }
-        
+
         showAlert = true
     }
 }
