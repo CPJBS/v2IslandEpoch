@@ -46,14 +46,13 @@ struct BuildingListView: View {
                 // Buildings Section
                 Section("Buildings") {
                     if let island = vm.mainIsland {
-                        // Existing buildings
-                        ForEach(island.buildings) { building in
-                            buildingRow(building)
-                        }
-                        
-                        // Empty slots
-                        ForEach(0..<vm.emptySlots, id: \.self) { _ in
-                            emptySlotRow()
+                        // Render all slots in order
+                        ForEach(Array(island.buildings.enumerated()), id: \.offset) { index, building in
+                            if let building = building {
+                                buildingRow(building)
+                            } else {
+                                emptySlotRow()
+                            }
                         }
                     }
                 }
@@ -63,7 +62,7 @@ struct BuildingListView: View {
                     if let island = vm.mainIsland {
                         LabeledContent("Island", value: island.name)
                         LabeledContent("Workers", value: "\(island.workersAvailable)")
-                        LabeledContent("Slots Used", value: "\(island.buildings.count)/\(island.maxSlots)")
+                        LabeledContent("Slots Used", value: "\(island.buildings.compactMap { $0 }.count)/\(island.maxSlots)")
                     }
                 }
             }
