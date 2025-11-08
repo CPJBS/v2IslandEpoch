@@ -97,7 +97,7 @@ final class GameViewModel: ObservableObject {
         
         return buildingManager.build(
             type,
-            onIsland: &gameState.islands[index],
+            onIslandIndex: index,
             gameState: &gameState
         )
     }
@@ -112,7 +112,7 @@ final class GameViewModel: ObservableObject {
         
         return buildingManager.demolish(
             buildingId: buildingId,
-            fromIsland: &gameState.islands[index],
+            fromIslandIndex: index,
             gameState: &gameState
         )
     }
