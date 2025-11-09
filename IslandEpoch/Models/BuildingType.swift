@@ -62,15 +62,25 @@ struct BuildingType: Codable, Identifiable, Equatable {
     static let bakery = BuildingType(
         id: "bakery",
         name: "Bakery",
-        workers: 1,
+        workers: 2,
         providesWorkers: 0,
-        produces: [.bread: 1],
-        consumes: [.wheat: 1, .wood: 1],
+        produces: [.bread: 4],
+        consumes: [.wheat: 1],
         goldCost: 100
     )
 
+    static let forager = BuildingType(
+        id: "forager",
+        name: "Forager",
+        workers: 1,
+        providesWorkers: 0,
+        produces: [.berries: 1],
+        consumes: [:],
+        goldCost: 20
+    )
+
     /// All available building types
-    static let all: [BuildingType] = [.tent, .farm, .forester, .mine, .bakery]
+    static let all: [BuildingType] = [.tent, .farm, .forester, .mine, .bakery, .forager]
     
     // MARK: - Helpers
     
@@ -81,6 +91,7 @@ struct BuildingType: Codable, Identifiable, Equatable {
         case "forester": return "tree.fill"
         case "mine": return "cube.box.fill"
         case "bakery": return "basket.fill"
+        case "forager": return "leaf.circle.fill"
         default: return "building.2"
         }
     }
@@ -89,6 +100,6 @@ struct BuildingType: Codable, Identifiable, Equatable {
         guard let (resource, amount) = produces.first else {
             return "No production"
         }
-        return "+\(amount) \(resource.displayName)/tick"
+        return "+\(amount) \(resource.displayNameWithCategory)/tick"
     }
 }
