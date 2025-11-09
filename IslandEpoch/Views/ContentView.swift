@@ -15,7 +15,12 @@ struct ContentView: View {
                 .tabItem {
                     Label("Buildings", systemImage: "building.2")
                 }
-            
+
+            ResearchView()
+                .tabItem {
+                    Label("Research", systemImage: "flask")
+                }
+
             DebugView()
                 .tabItem {
                     Label("Debug", systemImage: "ladybug")

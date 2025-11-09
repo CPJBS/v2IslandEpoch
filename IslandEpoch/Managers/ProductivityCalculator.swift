@@ -19,8 +19,8 @@ struct ProductivityCalculator {
         // 1. Worker-based productivity
         productivity *= workerProductivityMultiplier(for: building)
 
-        // 2. STUB: Research bonuses (to be implemented later)
-        // productivity *= researchProductivityMultiplier(gameState: gameState)
+        // 2. Research bonuses
+        productivity *= researchProductivityMultiplier(for: building, gameState: gameState)
 
         // 3. STUB: Building level bonuses (to be implemented later)
         // productivity *= levelProductivityMultiplier(building.level)
@@ -54,15 +54,23 @@ struct ProductivityCalculator {
         return Double(assignedWorkers) / Double(maxWorkers)
     }
 
-    // MARK: - Future Productivity Factors (Stubs)
+    // MARK: - Research Productivity
 
-    /// STUB: Calculate productivity multiplier from research
-    /// To be implemented when research system is added
-    private static func researchProductivityMultiplier(gameState: GameState?) -> Double {
-        // TODO: Implement research-based productivity bonuses
-        // Example: gameState?.activeResearches.contains(.improvedFarming) ? 1.2 : 1.0
-        return 1.0
+    /// Calculate productivity multiplier from research
+    private static func researchProductivityMultiplier(for building: Building, gameState: GameState?) -> Double {
+        guard let gameState = gameState else { return 1.0 }
+
+        var multiplier: Double = 1.0
+
+        // Metal Hatchets: +15% wood production for Foresters
+        if building.type.id == "forester" && gameState.hasCompletedResearch("metalHatchets") {
+            multiplier *= 1.15
+        }
+
+        return multiplier
     }
+
+    // MARK: - Future Productivity Factors (Stubs)
 
     /// STUB: Calculate productivity multiplier from building level
     /// To be implemented when building upgrade system is enhanced

@@ -86,6 +86,43 @@ final class GameViewModel: ObservableObject {
         objectWillChange.send()
     }
     
+    // MARK: - Research Actions
+
+    func completeResearch(_ researchId: String) -> Result<Void, ResearchError> {
+        // Check if already completed
+        if gameState.hasCompletedResearch(researchId) {
+            return .failure(.alreadyCompleted)
+        }
+
+        // Get research type
+        guard let research = ResearchType.all.first(where: { $0.id == researchId }) else {
+            return .failure(.researchNotFound)
+        }
+
+        // Check if we can afford it (from main island)
+        guard let islandIndex = gameState.islands.indices.first else {
+            return .failure(.noIsland)
+        }
+
+        // Verify resources
+        for (resource, amount) in research.cost {
+            if !gameState.islands[islandIndex].inventory.has(resource, amount: amount) {
+                return .failure(.insufficientResources)
+            }
+        }
+
+        // Deduct resources
+        for (resource, amount) in research.cost {
+            gameState.islands[islandIndex].inventory.remove(resource, amount: amount)
+        }
+
+        // Complete the research
+        let completedResearch = CompletedResearch(researchId: researchId)
+        gameState.completedResearches.append(completedResearch)
+
+        return .success(())
+    }
+
     // MARK: - Building Actions
 
     func buildBuilding(
@@ -250,6 +287,28 @@ final class GameViewModel: ObservableObject {
 
     func actualConsumptionRate() -> Inventory {
         productionManager.actualConsumptionRate(gameState: gameState)
+    }
+}
+
+// MARK: - Research Errors
+
+enum ResearchError: Error, LocalizedError {
+    case researchNotFound
+    case alreadyCompleted
+    case insufficientResources
+    case noIsland
+
+    var errorDescription: String? {
+        switch self {
+        case .researchNotFound:
+            return "Research not found"
+        case .alreadyCompleted:
+            return "Research already completed"
+        case .insufficientResources:
+            return "Insufficient resources"
+        case .noIsland:
+            return "No island available"
+        }
     }
 }
 

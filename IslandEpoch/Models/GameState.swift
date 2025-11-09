@@ -24,6 +24,7 @@ struct GameState: Codable {
     // MARK: - Progression
     var epochTracker: EpochTracker = EpochTracker()
     var hasResearchedTrade: Bool = false
+    var completedResearches: [CompletedResearch] = []
     
     // MARK: - Computed Properties
     
@@ -38,6 +39,11 @@ struct GameState: Codable {
     var totalGoldIncome: Int {
         // Future: calculate from buildings
         return 1
+    }
+
+    /// Check if a specific research has been completed
+    func hasCompletedResearch(_ researchId: String) -> Bool {
+        return completedResearches.contains { $0.researchId == researchId }
     }
     
     // MARK: - Demo/Initial State
