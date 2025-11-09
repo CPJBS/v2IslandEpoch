@@ -61,9 +61,12 @@ struct BuildingListView: View {
                                                         .font(.caption)
                                                         .foregroundColor(.secondary)
                                                     Spacer()
-                                                    Text("\(amount)")
-                                                        .font(.caption)
-                                                        .foregroundColor(.secondary)
+                                                    VStack(alignment: .trailing, spacing: 2) {
+                                                        Text("\(amount)")
+                                                            .font(.caption)
+                                                            .foregroundColor(.secondary)
+                                                        resourceRateTicker(for: resource)
+                                                    }
                                                 }
                                             }
                                         }
