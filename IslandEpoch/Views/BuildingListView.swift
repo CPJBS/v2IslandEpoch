@@ -92,7 +92,9 @@ struct BuildingListView: View {
                 Section("Island Info") {
                     if let island = vm.mainIsland {
                         LabeledContent("Island", value: island.name)
-                        LabeledContent("Available Workers", value: "\(island.workersAvailable - island.totalWorkersAssigned)")
+                        LabeledContent("Total Workers", value: "\(island.workersAvailable)")
+                        LabeledContent("Assigned Workers", value: "\(island.totalWorkersAssigned)")
+                        LabeledContent("Unassigned Workers", value: "\(island.unassignedWorkers)")
                         LabeledContent("Slots Used", value: "\(island.buildings.compactMap { $0 }.count)/\(island.maxSlots)")
                     }
                 }
@@ -174,8 +176,11 @@ struct BuildingListView: View {
                         Text("Provides \(building.type.providesWorkers) workers")
                             .font(.caption)
                     } else if building.type.workers > 0 {
-                        Text("Requires \(building.type.workers) workers")
+                        let productivity = vm.getProductivity(for: building.id, onIslandIndex: 0)
+                        let productivityStr = String(format: "%.0f%%", productivity * 100)
+                        Text("\(building.assignedWorkers)/\(building.type.workers) workers (\(productivityStr))")
                             .font(.caption)
+                            .foregroundColor(productivity > 0.66 ? .green : (productivity > 0.33 ? .orange : .red))
                     }
                 }
                 .foregroundColor(.secondary)
@@ -213,7 +218,7 @@ struct BuildingListView: View {
                                 Text("\(type.goldCost) gold • Provides \(type.providesWorkers) workers")
                                     .font(.caption)
                             } else if type.workers > 0 {
-                                Text("\(type.goldCost) gold • Requires \(type.workers) workers")
+                                Text("\(type.goldCost) gold • Max \(type.workers) workers")
                                     .font(.caption)
                             } else {
                                 Text("\(type.goldCost) gold")
