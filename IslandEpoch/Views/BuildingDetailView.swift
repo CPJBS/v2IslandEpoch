@@ -44,8 +44,88 @@ struct BuildingDetailView: View {
 
                 // Production Section
                 Section("Production") {
-                    Text(building.type.productionDescription)
-                        .foregroundColor(.secondary)
+                    // Production Overview
+                    if !building.type.produces.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Overview")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+
+                            HStack(spacing: 8) {
+                                // Input side
+                                if building.type.consumes.isEmpty {
+                                    Text("None")
+                                        .foregroundColor(.secondary)
+                                } else {
+                                    HStack(spacing: 4) {
+                                        ForEach(Array(building.type.consumes.keys.sorted(by: { $0.displayName < $1.displayName })), id: \.self) { resource in
+                                            if let amount = building.type.consumes[resource] {
+                                                Text("\(amount) \(resource.displayName)")
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Arrow
+                                Image(systemName: "arrow.right")
+                                    .foregroundColor(.blue)
+
+                                // Output side
+                                HStack(spacing: 4) {
+                                    ForEach(Array(building.type.produces.keys.sorted(by: { $0.displayName < $1.displayName })), id: \.self) { resource in
+                                        if let amount = building.type.produces[resource] {
+                                            Text("\(amount) \(resource.displayNameWithCategory)")
+                                        }
+                                    }
+                                }
+                            }
+                            .font(.headline)
+                        }
+                        .padding(.vertical, 4)
+                    }
+
+                    // Input Details
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Input")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        if building.type.consumes.isEmpty {
+                            Text("None")
+                                .foregroundColor(.secondary)
+                        } else {
+                            ForEach(Array(building.type.consumes.keys.sorted(by: { $0.displayName < $1.displayName })), id: \.self) { resource in
+                                if let amount = building.type.consumes[resource] {
+                                    HStack {
+                                        Image(systemName: resource.icon)
+                                            .foregroundColor(.orange)
+                                        Text("\(amount) × \(resource.displayName)")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+
+                    // Output Details
+                    if !building.type.produces.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Output")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+
+                            ForEach(Array(building.type.produces.keys.sorted(by: { $0.displayName < $1.displayName })), id: \.self) { resource in
+                                if let amount = building.type.produces[resource] {
+                                    HStack {
+                                        Image(systemName: resource.icon)
+                                            .foregroundColor(.green)
+                                        Text("\(amount) × \(resource.displayNameWithCategory)")
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
                 }
 
                 // Details Section
