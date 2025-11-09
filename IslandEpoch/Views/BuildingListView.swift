@@ -196,8 +196,13 @@ struct BuildingListView: View {
     // MARK: - Empty Slot Row
 
     private func emptySlotRow(atIndex index: Int) -> some View {
-        Menu {
-            ForEach(BuildingType.all, id: \.id) { type in
+        // Filter buildings based on current epoch
+        let availableBuildings = BuildingType.all.filter { buildingType in
+            buildingType.availableFromEpoch <= vm.gameState.epochTracker.currentEpoch
+        }
+
+        return Menu {
+            ForEach(availableBuildings, id: \.id) { type in
                 Button {
                     buildBuilding(type, atSlotIndex: index)
                 } label: {

@@ -14,6 +14,7 @@ struct BuildingType: Codable, Identifiable, Equatable {
     let produces: Inventory       // Output per tick
     let consumes: Inventory       // Input per tick
     let goldCost: Int             // Cost to build
+    let availableFromEpoch: Int   // Epoch when this building becomes available
     
     // MARK: - Static Catalog
 
@@ -25,7 +26,8 @@ struct BuildingType: Codable, Identifiable, Equatable {
         providesWorkers: 5,
         produces: [:],
         consumes: [:],
-        goldCost: 30
+        goldCost: 30,
+        availableFromEpoch: 1
     )
 
     // Production Buildings
@@ -36,7 +38,8 @@ struct BuildingType: Codable, Identifiable, Equatable {
         providesWorkers: 0,
         produces: [.wheat: 2],
         consumes: [:],
-        goldCost: 50
+        goldCost: 50,
+        availableFromEpoch: 1
     )
 
     static let forester = BuildingType(
@@ -46,7 +49,8 @@ struct BuildingType: Codable, Identifiable, Equatable {
         providesWorkers: 0,
         produces: [.wood: 2],
         consumes: [:],
-        goldCost: 40
+        goldCost: 40,
+        availableFromEpoch: 1
     )
 
     static let mine = BuildingType(
@@ -56,7 +60,8 @@ struct BuildingType: Codable, Identifiable, Equatable {
         providesWorkers: 0,
         produces: [.ironOre: 1],
         consumes: [:],
-        goldCost: 80
+        goldCost: 80,
+        availableFromEpoch: 1
     )
 
     static let bakery = BuildingType(
@@ -66,7 +71,8 @@ struct BuildingType: Codable, Identifiable, Equatable {
         providesWorkers: 0,
         produces: [.bread: 4],
         consumes: [.wheat: 1],
-        goldCost: 100
+        goldCost: 100,
+        availableFromEpoch: 1
     )
 
     static let forager = BuildingType(
@@ -76,7 +82,8 @@ struct BuildingType: Codable, Identifiable, Equatable {
         providesWorkers: 0,
         produces: [.berries: 1],
         consumes: [:],
-        goldCost: 20
+        goldCost: 20,
+        availableFromEpoch: 1
     )
 
     /// All available building types
