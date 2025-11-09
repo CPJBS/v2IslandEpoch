@@ -20,8 +20,9 @@ struct GameState: Codable {
     
     // MARK: - Territory
     var islands: [Island] = []
-    
+
     // MARK: - Progression
+    var epochTracker: EpochTracker = EpochTracker()
     var hasResearchedTrade: Bool = false
     
     // MARK: - Computed Properties
