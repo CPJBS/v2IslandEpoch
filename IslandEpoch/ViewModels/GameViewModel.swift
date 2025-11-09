@@ -243,6 +243,14 @@ final class GameViewModel: ObservableObject {
     func totalConsumption() -> Inventory {
         productionManager.totalConsumption(gameState: gameState)
     }
+
+    func actualProductionRate() -> Inventory {
+        productionManager.actualProductionRate(gameState: gameState)
+    }
+
+    func actualConsumptionRate() -> Inventory {
+        productionManager.actualConsumptionRate(gameState: gameState)
+    }
 }
 
 // MARK: - Worker Assignment Errors

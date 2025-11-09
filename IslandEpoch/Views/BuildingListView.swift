@@ -116,8 +116,8 @@ struct BuildingListView: View {
 
     @ViewBuilder
     private func resourceRateTicker(for resource: ResourceType) -> some View {
-        let production = vm.totalProduction()[resource, default: 0]
-        let consumption = vm.totalConsumption()[resource, default: 0]
+        let production = vm.actualProductionRate()[resource, default: 0]
+        let consumption = vm.actualConsumptionRate()[resource, default: 0]
         let netChange = production - consumption
 
         if netChange != 0 {
@@ -129,8 +129,8 @@ struct BuildingListView: View {
 
     @ViewBuilder
     private func categoryRateTicker(for category: ResourceCategory) -> some View {
-        let production = vm.totalProduction()
-        let consumption = vm.totalConsumption()
+        let production = vm.actualProductionRate()
+        let consumption = vm.actualConsumptionRate()
 
         // Calculate net change for all resources in this category
         let categoryProduction = ResourceType.allCases
