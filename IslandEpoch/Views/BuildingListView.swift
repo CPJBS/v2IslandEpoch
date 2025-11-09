@@ -47,7 +47,6 @@ struct BuildingListView: View {
                                         VStack(alignment: .trailing, spacing: 2) {
                                             Text("\(categoryTotal)")
                                                 .bold()
-                                            categoryRateTicker(for: category)
                                         }
                                     }
 
