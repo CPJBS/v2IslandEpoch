@@ -59,14 +59,24 @@ class ProductionManager {
     
     private func processIslandTick(island: inout Island) {
         for building in island.buildings.compactMap({ $0 }) {
-            // 1. Check worker requirement
-            guard island.workersAvailable >= building.type.workers else {
+            // 1. Calculate productivity based on assigned workers and other factors
+            let productivity = ProductivityCalculator.calculateProductivity(for: building, gameState: gameState)
+
+            // Skip if productivity is 0 (no workers assigned)
+            guard productivity > 0 else {
                 continue
             }
 
-            // 2. Check input resources
+            // 2. Calculate actual consumption based on productivity
+            var actualConsumption: Inventory = [:]
+            for (resource, baseAmount) in building.type.consumes {
+                let actualAmount = ProductivityCalculator.calculateActualConsumption(baseAmount, productivity: productivity)
+                actualConsumption[resource] = actualAmount
+            }
+
+            // 3. Check if we have enough input resources
             var canRun = true
-            for (resource, amount) in building.type.consumes {
+            for (resource, amount) in actualConsumption {
                 if !island.inventory.has(resource, amount: amount) {
                     canRun = false
                     break
@@ -75,14 +85,15 @@ class ProductionManager {
 
             guard canRun else { continue }
 
-            // 3. Consume inputs
-            for (resource, amount) in building.type.consumes {
+            // 4. Consume inputs (productivity-adjusted)
+            for (resource, amount) in actualConsumption {
                 island.inventory.remove(resource, amount: amount)
             }
 
-            // 4. Produce outputs
-            for (resource, amount) in building.type.produces {
-                island.inventory.add(resource, amount: amount)
+            // 5. Produce outputs (productivity-adjusted)
+            for (resource, baseAmount) in building.type.produces {
+                let actualAmount = ProductivityCalculator.calculateActualProduction(baseAmount, productivity: productivity)
+                island.inventory.add(resource, amount: actualAmount)
             }
         }
     }

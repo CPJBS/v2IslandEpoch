@@ -112,12 +112,88 @@ final class GameViewModel: ObservableObject {
         guard index < gameState.islands.count else {
             return .failure(.buildingNotFound)
         }
-        
+
         return buildingManager.demolish(
             buildingId: buildingId,
             fromIslandIndex: index,
             gameState: &gameState
         )
+    }
+
+    // MARK: - Worker Assignment
+
+    /// Assign a worker to a building
+    func assignWorker(to buildingId: UUID, onIslandIndex islandIndex: Int) -> Result<Void, WorkerAssignmentError> {
+        guard islandIndex < gameState.islands.count else {
+            return .failure(.invalidIsland)
+        }
+
+        guard let buildingIndex = gameState.islands[islandIndex].buildings.firstIndex(where: { $0?.id == buildingId }) else {
+            return .failure(.buildingNotFound)
+        }
+
+        guard var building = gameState.islands[islandIndex].buildings[buildingIndex] else {
+            return .failure(.buildingNotFound)
+        }
+
+        // Check if building can accept more workers
+        guard building.assignedWorkers < building.type.workers else {
+            return .failure(.buildingFull)
+        }
+
+        // Check if island has unassigned workers
+        guard gameState.islands[islandIndex].unassignedWorkers > 0 else {
+            return .failure(.noWorkersAvailable)
+        }
+
+        // Assign the worker
+        building.assignedWorkers += 1
+        gameState.islands[islandIndex].buildings[buildingIndex] = building
+
+        return .success(())
+    }
+
+    /// Unassign a worker from a building
+    func unassignWorker(from buildingId: UUID, onIslandIndex islandIndex: Int) -> Result<Void, WorkerAssignmentError> {
+        guard islandIndex < gameState.islands.count else {
+            return .failure(.invalidIsland)
+        }
+
+        guard let buildingIndex = gameState.islands[islandIndex].buildings.firstIndex(where: { $0?.id == buildingId }) else {
+            return .failure(.buildingNotFound)
+        }
+
+        guard var building = gameState.islands[islandIndex].buildings[buildingIndex] else {
+            return .failure(.buildingNotFound)
+        }
+
+        // Check if building has workers to unassign
+        guard building.assignedWorkers > 0 else {
+            return .failure(.noWorkersAssigned)
+        }
+
+        // Unassign the worker
+        building.assignedWorkers -= 1
+        gameState.islands[islandIndex].buildings[buildingIndex] = building
+
+        return .success(())
+    }
+
+    /// Get productivity percentage for a building
+    func getProductivity(for buildingId: UUID, onIslandIndex islandIndex: Int) -> Double {
+        guard islandIndex < gameState.islands.count else {
+            return 0.0
+        }
+
+        guard let building = gameState.islands[islandIndex].buildings.first(where: { $0?.id == buildingId }) else {
+            return 0.0
+        }
+
+        guard let actualBuilding = building else {
+            return 0.0
+        }
+
+        return ProductivityCalculator.calculateProductivity(for: actualBuilding, gameState: gameState)
     }
     
     // MARK: - Save/Load
@@ -166,5 +242,30 @@ final class GameViewModel: ObservableObject {
 
     func totalConsumption() -> Inventory {
         productionManager.totalConsumption(gameState: gameState)
+    }
+}
+
+// MARK: - Worker Assignment Errors
+
+enum WorkerAssignmentError: Error, LocalizedError {
+    case invalidIsland
+    case buildingNotFound
+    case buildingFull
+    case noWorkersAvailable
+    case noWorkersAssigned
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidIsland:
+            return "Invalid island"
+        case .buildingNotFound:
+            return "Building not found"
+        case .buildingFull:
+            return "Building already has maximum workers"
+        case .noWorkersAvailable:
+            return "No unassigned workers available"
+        case .noWorkersAssigned:
+            return "No workers assigned to this building"
+        }
     }
 }

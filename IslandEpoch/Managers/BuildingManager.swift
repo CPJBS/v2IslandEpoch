@@ -44,21 +44,11 @@ class BuildingManager {
             return .failure(.noSlots)
         }
 
-        // 3. Check workers
-        let island = gameState.islands[islandIndex]
-        let workersNeeded = island.totalWorkersAssigned + type.workers
-        guard island.workersAvailable >= workersNeeded else {
-            return .failure(.insufficientWorkers(
-                required: workersNeeded,
-                available: island.workersAvailable
-            ))
-        }
-
-        // 4. Create building
+        // 3. Create building (no worker check - workers are assigned later)
         let buildingId = UUID()
         let building = Building(id: buildingId, type: type)
 
-        // 5. Determine target slot index
+        // 4. Determine target slot index
         let targetSlotIndex: Int
         if let slotIndex = slotIndex {
             // Use specific slot if provided
@@ -77,7 +67,7 @@ class BuildingManager {
             targetSlotIndex = emptySlotIndex
         }
 
-        // 6. Update state
+        // 5. Update state
         gameState.gold -= type.goldCost
         gameState.islands[islandIndex].buildings[targetSlotIndex] = building
 
@@ -134,7 +124,6 @@ class BuildingManager {
 enum BuildError: Error, LocalizedError {
     case insufficientGold(required: Int, available: Int)
     case noSlots
-    case insufficientWorkers(required: Int, available: Int)
     case buildingNotFound
     case cannotDemolishLastTent
 
@@ -144,8 +133,6 @@ enum BuildError: Error, LocalizedError {
             return "Need \(required) gold (have \(available))"
         case .noSlots:
             return "No building slots available"
-        case .insufficientWorkers(let required, let available):
-            return "Need \(required) workers (have \(available))"
         case .buildingNotFound:
             return "Building not found"
         case .cannotDemolishLastTent:

@@ -42,8 +42,14 @@ struct Island: Identifiable, Codable {
         buildings.compactMap { $0 }.reduce(0) { $0 + $1.type.providesWorkers }
     }
 
+    /// Total workers currently assigned to buildings
     var totalWorkersAssigned: Int {
-        buildings.compactMap { $0 }.reduce(0) { $0 + $1.type.workers }
+        buildings.compactMap { $0 }.reduce(0) { $0 + $1.assignedWorkers }
+    }
+
+    /// Unassigned workers available for assignment
+    var unassignedWorkers: Int {
+        workersAvailable - totalWorkersAssigned
     }
 
     // MARK: - Codable (with migration support)
