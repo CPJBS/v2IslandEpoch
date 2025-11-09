@@ -96,7 +96,7 @@ struct BuildingDetailView: View {
                             } label: {
                                 HStack {
                                     Image(systemName: "minus.circle.fill")
-                                    Text("Unassign Worker")
+                                    Text("Worker")
                                 }
                                 .frame(maxWidth: .infinity)
                             }
@@ -109,7 +109,7 @@ struct BuildingDetailView: View {
                             } label: {
                                 HStack {
                                     Image(systemName: "plus.circle.fill")
-                                    Text("Assign Worker")
+                                    Text("Worker")
                                 }
                                 .frame(maxWidth: .infinity)
                             }
