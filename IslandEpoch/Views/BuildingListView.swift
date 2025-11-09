@@ -156,6 +156,20 @@ struct BuildingListView: View {
 
     // MARK: - Building Row
 
+    /// Get the actual production description based on current productivity
+    private func actualProductionDescription(for building: Building) -> String {
+        // If building doesn't produce anything, return "No production"
+        guard let (resource, baseAmount) = building.type.produces.first else {
+            return "No production"
+        }
+
+        // Calculate actual production based on productivity
+        let productivity = vm.getProductivity(for: building.id, onIslandIndex: 0)
+        let actualAmount = ProductivityCalculator.calculateActualProduction(baseAmount, productivity: productivity)
+
+        return "+\(actualAmount) \(resource.displayNameWithCategory)/tick"
+    }
+
     private func buildingRow(_ building: Building) -> some View {
         HStack {
             Image(systemName: building.type.icon)
@@ -166,7 +180,7 @@ struct BuildingListView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(building.type.name)
                     .font(.headline)
-                Text(building.type.productionDescription)
+                Text(actualProductionDescription(for: building))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 HStack(spacing: 4) {
