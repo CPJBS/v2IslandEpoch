@@ -24,6 +24,15 @@ struct BuildingDetailView: View {
         return vm.gameState.islands[islandIndex]
     }
 
+    // Get the current building from game state (updates when workers are assigned/unassigned)
+    var currentBuilding: Building {
+        guard islandIndex < vm.gameState.islands.count else { return building }
+        guard let updatedBuilding = vm.gameState.islands[islandIndex].buildings.first(where: { $0?.id == building.id }) else {
+            return building
+        }
+        return updatedBuilding ?? building
+    }
+
     var productivity: Double {
         vm.getProductivity(for: building.id, onIslandIndex: islandIndex)
     }
@@ -64,7 +73,7 @@ struct BuildingDetailView: View {
                                 Text("Workers Assigned")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
-                                Text("\(building.assignedWorkers) / \(building.type.workers)")
+                                Text("\(currentBuilding.assignedWorkers) / \(building.type.workers)")
                                     .font(.title2)
                                     .bold()
                             }
@@ -101,7 +110,7 @@ struct BuildingDetailView: View {
                                 .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.bordered)
-                            .disabled(building.assignedWorkers == 0)
+                            .disabled(currentBuilding.assignedWorkers == 0)
 
                             // Assign Worker Button
                             Button {
@@ -115,7 +124,7 @@ struct BuildingDetailView: View {
                             }
                             .buttonStyle(.borderedProminent)
                             .disabled(
-                                building.assignedWorkers >= building.type.workers ||
+                                currentBuilding.assignedWorkers >= building.type.workers ||
                                 (island?.unassignedWorkers ?? 0) == 0
                             )
                         }
