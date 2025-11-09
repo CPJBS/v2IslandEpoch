@@ -25,18 +25,49 @@ struct BuildingListView: View {
                         Text("\(vm.gameState.gold)")
                             .bold()
                     }
-                    
+
                     if let island = vm.mainIsland {
-                        ForEach(ResourceType.allCases, id: \.self) { resource in
-                            HStack {
-                                Image(systemName: resource.icon)
-                                    .foregroundColor(.green)
-                                Text(resource.displayName)
-                                Spacer()
-                                VStack(alignment: .trailing, spacing: 2) {
-                                    Text("\(island.inventory[resource, default: 0])")
-                                        .bold()
-                                    resourceRateTicker(for: resource)
+                        // Group resources by category
+                        let categories = ResourceCategory.allCases
+
+                        ForEach(categories, id: \.self) { category in
+                            let resources = ResourceType.allCases.filter { $0.category == category }
+                            let categoryTotal = island.inventory.categoryTotal(category)
+
+                            // Only show category if we have resources in it
+                            if !resources.isEmpty {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    // Category header
+                                    HStack {
+                                        Image(systemName: category.icon)
+                                            .foregroundColor(.green)
+                                        Text(category.displayName)
+                                            .font(.headline)
+                                        Spacer()
+                                        VStack(alignment: .trailing, spacing: 2) {
+                                            Text("\(categoryTotal)")
+                                                .bold()
+                                            categoryRateTicker(for: category)
+                                        }
+                                    }
+
+                                    // Individual resource breakdown (if category has items)
+                                    if categoryTotal > 0 {
+                                        ForEach(resources, id: \.self) { resource in
+                                            let amount = island.inventory[resource, default: 0]
+                                            if amount > 0 {
+                                                HStack {
+                                                    Text("  • \(resource.displayName)")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                    Spacer()
+                                                    Text("\(amount)")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -86,6 +117,33 @@ struct BuildingListView: View {
         let production = vm.totalProduction()[resource, default: 0]
         let consumption = vm.totalConsumption()[resource, default: 0]
         let netChange = production - consumption
+
+        if netChange != 0 {
+            Text("(\(netChange > 0 ? "+" : "")\(netChange)/s)")
+                .font(.caption)
+                .foregroundColor(netChange > 0 ? .green : .red)
+        }
+    }
+
+    @ViewBuilder
+    private func categoryRateTicker(for category: ResourceCategory) -> some View {
+        let production = vm.totalProduction()
+        let consumption = vm.totalConsumption()
+
+        // Calculate net change for all resources in this category
+        let categoryProduction = ResourceType.allCases
+            .filter { $0.category == category }
+            .reduce(0) { total, resource in
+                total + production[resource, default: 0]
+            }
+
+        let categoryConsumption = ResourceType.allCases
+            .filter { $0.category == category }
+            .reduce(0) { total, resource in
+                total + consumption[resource, default: 0]
+            }
+
+        let netChange = categoryProduction - categoryConsumption
 
         if netChange != 0 {
             Text("(\(netChange > 0 ? "+" : "")\(netChange)/s)")
