@@ -44,8 +44,6 @@ struct IslandTabView: View {
     @State private var selectedBuilding: Building?
     @State private var selectedSlotIndex: Int?
     @State private var showBuildMenu = false
-    @State private var showAlert = false
-    @State private var alertMessage = ""
 
     var body: some View {
         ZStack {
@@ -64,16 +62,9 @@ struct IslandTabView: View {
         }
         .sheet(isPresented: $showBuildMenu) {
             if let slotIndex = selectedSlotIndex {
-                BuildMenuView(slotIndex: slotIndex, onBuild: { type in
-                    buildBuilding(type, atSlotIndex: slotIndex)
-                })
-                .environmentObject(vm)
+                BuildMenuView(slotIndex: slotIndex)
+                    .environmentObject(vm)
             }
-        }
-        .alert("Action Result", isPresented: $showAlert) {
-            Button("OK") { }
-        } message: {
-            Text(alertMessage)
         }
     }
 
@@ -87,83 +78,6 @@ struct IslandTabView: View {
             // Empty slot - show build menu
             selectedSlotIndex = slotIndex
             showBuildMenu = true
-        }
-    }
-
-    private func buildBuilding(_ type: BuildingType, atSlotIndex slotIndex: Int) {
-        let result = vm.buildBuilding(type, onIslandIndex: 0, atSlotIndex: slotIndex)
-
-        switch result {
-        case .success:
-            alertMessage = "\(type.name) built successfully!"
-            showBuildMenu = false
-        case .failure(let error):
-            alertMessage = error.localizedDescription
-        }
-
-        showAlert = true
-    }
-}
-
-// MARK: - Build Menu View
-struct BuildMenuView: View {
-    @EnvironmentObject var vm: GameViewModel
-    let slotIndex: Int
-    let onBuild: (BuildingType) -> Void
-    @Environment(\.dismiss) var dismiss
-
-    var body: some View {
-        NavigationStack {
-            List {
-                ForEach(availableBuildings, id: \.id) { type in
-                    Button {
-                        onBuild(type)
-                        dismiss()
-                    } label: {
-                        HStack {
-                            Image(systemName: type.icon)
-                                .font(.title2)
-                                .frame(width: 40)
-                                .foregroundColor(.blue)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(type.name)
-                                    .font(.headline)
-                                if type.providesWorkers > 0 {
-                                    Text("\(type.goldCost) gold • Provides \(type.providesWorkers) workers")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                } else if type.workers > 0 {
-                                    Text("\(type.goldCost) gold • Max \(type.workers) workers")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                } else {
-                                    Text("\(type.goldCost) gold")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-
-                            Spacer()
-                        }
-                    }
-                }
-            }
-            .navigationTitle("Build on Slot \(slotIndex + 1)")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-
-    private var availableBuildings: [BuildingType] {
-        BuildingType.all.filter { buildingType in
-            buildingType.availableFromEpoch <= vm.gameState.epochTracker.currentEpoch
         }
     }
 }

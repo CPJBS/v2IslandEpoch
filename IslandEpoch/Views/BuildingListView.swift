@@ -8,9 +8,9 @@ import OSLog
 
 struct BuildingListView: View {
     @EnvironmentObject var vm: GameViewModel
-    @State private var showAlert = false
-    @State private var alertMessage = ""
     @State private var selectedBuilding: Building?
+    @State private var selectedSlotIndex: Int?
+    @State private var showBuildMenu = false
 
     var body: some View {
         NavigationStack {
@@ -102,14 +102,15 @@ struct BuildingListView: View {
                 }
             }
             .navigationTitle("Main Isle")
-            .alert("Action Result", isPresented: $showAlert) {
-                Button("OK") { }
-            } message: {
-                Text(alertMessage)
-            }
             .sheet(item: $selectedBuilding) { building in
                 BuildingDetailView(building: building, islandIndex: 0)
                     .environmentObject(vm)
+            }
+            .sheet(isPresented: $showBuildMenu) {
+                if let slotIndex = selectedSlotIndex {
+                    BuildMenuView(slotIndex: slotIndex)
+                        .environmentObject(vm)
+                }
             }
         }
     }
@@ -217,35 +218,9 @@ struct BuildingListView: View {
     // MARK: - Empty Slot Row
 
     private func emptySlotRow(atIndex index: Int) -> some View {
-        // Filter buildings based on current epoch
-        let availableBuildings = BuildingType.all.filter { buildingType in
-            buildingType.availableFromEpoch <= vm.gameState.epochTracker.currentEpoch
-        }
-
-        return Menu {
-            ForEach(availableBuildings, id: \.id) { type in
-                Button {
-                    buildBuilding(type, atSlotIndex: index)
-                } label: {
-                    Label {
-                        VStack(alignment: .leading) {
-                            Text(type.name)
-                            if type.providesWorkers > 0 {
-                                Text("\(type.goldCost) gold • Provides \(type.providesWorkers) workers")
-                                    .font(.caption)
-                            } else if type.workers > 0 {
-                                Text("\(type.goldCost) gold • Max \(type.workers) workers")
-                                    .font(.caption)
-                            } else {
-                                Text("\(type.goldCost) gold")
-                                    .font(.caption)
-                            }
-                        }
-                    } icon: {
-                        Image(systemName: type.icon)
-                    }
-                }
-            }
+        Button {
+            selectedSlotIndex = index
+            showBuildMenu = true
         } label: {
             HStack {
                 RoundedRectangle(cornerRadius: 4)
@@ -269,21 +244,6 @@ struct BuildingListView: View {
                     .foregroundColor(.blue)
             }
         }
-    }
-    
-    // MARK: - Actions
-
-    private func buildBuilding(_ type: BuildingType, atSlotIndex slotIndex: Int) {
-        let result = vm.buildBuilding(type, onIslandIndex: 0, atSlotIndex: slotIndex)
-
-        switch result {
-        case .success:
-            alertMessage = "\(type.name) built successfully!"
-        case .failure(let error):
-            alertMessage = error.localizedDescription
-        }
-
-        showAlert = true
     }
 }
 
