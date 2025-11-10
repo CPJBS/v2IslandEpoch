@@ -86,8 +86,19 @@ struct BuildingType: Codable, Identifiable, Equatable {
         availableFromEpoch: 1
     )
 
+    static let library = BuildingType(
+        id: "library",
+        name: "Library",
+        workers: 3,
+        providesWorkers: 0,
+        produces: [.insight: 1],
+        consumes: [:],
+        goldCost: 150,
+        availableFromEpoch: 1
+    )
+
     /// All available building types
-    static let all: [BuildingType] = [.tent, .farm, .forester, .mine, .bakery, .forager]
+    static let all: [BuildingType] = [.tent, .farm, .forester, .mine, .bakery, .forager, .library]
     
     // MARK: - Helpers
     
@@ -99,6 +110,7 @@ struct BuildingType: Codable, Identifiable, Equatable {
         case "mine": return "cube.box.fill"
         case "bakery": return "basket.fill"
         case "forager": return "leaf.circle.fill"
+        case "library": return "book.fill"
         default: return "building.2"
         }
     }
