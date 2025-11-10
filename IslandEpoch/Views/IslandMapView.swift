@@ -8,15 +8,11 @@
 import SwiftUI
 
 // ─────────────────────────────────────────────────────────────────
-// 1️⃣ Define BuildingSpot so ForEach can find it
+// 1️⃣ Define BuildingSlotData for display
 // ─────────────────────────────────────────────────────────────────
-struct BuildingSpot: Identifiable {
-    enum Kind {
-        case empty, harbor
-    }
-    let id = UUID()
-    let kind: Kind
-    /// Relative position in [0…1] × [0…1] coordinate space
+struct BuildingSlotData: Identifiable {
+    let id: Int  // Slot index
+    let building: Building?
     let position: CGPoint
 }
 
@@ -28,22 +24,29 @@ struct IslandMapView: View {
     let gold: Int
     let wheat: Int
     let workers: Int
-    let tradingResearched: Bool
-    let onSpotTap: (BuildingSpot.Kind) -> Void
+    let buildings: [Building?]
+    let onSlotTap: (Int) -> Void  // Passes slot index
 
-    // Hard-coded spot layout (you can move to your model later)
-    private let spots: [BuildingSpot] = [
-        .init(kind: .empty,  position: CGPoint(x: 0.25, y: 0.30)),
-        .init(kind: .empty,  position: CGPoint(x: 0.50, y: 0.30)),
-        .init(kind: .empty,  position: CGPoint(x: 0.75, y: 0.30)),
-        .init(kind: .empty,  position: CGPoint(x: 0.25, y: 0.50)),
-        .init(kind: .empty,  position: CGPoint(x: 0.50, y: 0.50)),
-        .init(kind: .empty,  position: CGPoint(x: 0.75, y: 0.50)),
-        .init(kind: .empty,  position: CGPoint(x: 0.25, y: 0.70)),
-        .init(kind: .empty,  position: CGPoint(x: 0.50, y: 0.70)),
-        // Harbor slot
-        .init(kind: .harbor, position: CGPoint(x: 0.15, y: 0.85)),
+    // Fixed spot positions (matching array indices)
+    private let positions: [CGPoint] = [
+        CGPoint(x: 0.25, y: 0.30),  // Slot 0
+        CGPoint(x: 0.50, y: 0.30),  // Slot 1
+        CGPoint(x: 0.75, y: 0.30),  // Slot 2
+        CGPoint(x: 0.25, y: 0.50),  // Slot 3
+        CGPoint(x: 0.50, y: 0.50),  // Slot 4
+        CGPoint(x: 0.75, y: 0.50),  // Slot 5
     ]
+
+    // Map buildings to slots with positions
+    private var slots: [BuildingSlotData] {
+        buildings.enumerated().map { index, building in
+            BuildingSlotData(
+                id: index,
+                building: building,
+                position: index < positions.count ? positions[index] : CGPoint(x: 0.5, y: 0.8)
+            )
+        }
+    }
 
     var body: some View {
         ZStack {
@@ -53,22 +56,39 @@ struct IslandMapView: View {
 
             // Building spots
             GeometryReader { geo in
-                ForEach(spots) { spot in
-                    // Harbor only visible once researched
-                    if spot.kind == .empty || tradingResearched {
-                        Button {
-                            onSpotTap(spot.kind)
-                        } label: {
-                            RoundedRectangle(cornerRadius: 4)
-                                .stroke(spot.kind == .harbor ? Color.teal : Color.primary, lineWidth: 2)
-                                .background(spot.kind == .harbor ? Color.teal.opacity(0.2) : Color.clear)
-                                .frame(width: 50, height: 50)
+                ForEach(slots) { slot in
+                    Button {
+                        onSlotTap(slot.id)
+                    } label: {
+                        if let building = slot.building {
+                            // Occupied slot - show building
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.blue.opacity(0.3))
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.blue, lineWidth: 2)
+                                Image(systemName: building.type.icon)
+                                    .font(.title)
+                                    .foregroundColor(.white)
+                            }
+                            .frame(width: 60, height: 60)
+                        } else {
+                            // Empty slot
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.gray.opacity(0.5), lineWidth: 2)
+                                    .background(Color.clear)
+                                Image(systemName: "plus")
+                                    .font(.title2)
+                                    .foregroundColor(.gray.opacity(0.5))
+                            }
+                            .frame(width: 60, height: 60)
                         }
-                        .position(
-                            x: geo.size.width  * spot.position.x,
-                            y: geo.size.height * spot.position.y
-                        )
                     }
+                    .position(
+                        x: geo.size.width  * slot.position.x,
+                        y: geo.size.height * slot.position.y
+                    )
                 }
             }
 
@@ -84,7 +104,10 @@ struct IslandMapView: View {
                     }
                     .font(.headline)
                     .padding(8)
+                    .background(Color.white.opacity(0.8))
+                    .cornerRadius(8)
                 }
+                .padding()
                 Spacer()
             }
         }
@@ -97,12 +120,19 @@ struct IslandMapView: View {
 struct IslandMapView_Previews: PreviewProvider {
     static var previews: some View {
         IslandMapView(
-            gold: 123,
+            gold: 500,
             wheat: 45,
             workers: 8,
-            tradingResearched: true
-        ) { kind in
-            print("Tapped:", kind)
+            buildings: [
+                Building(type: .tent),
+                Building(type: .farm),
+                nil,
+                Building(type: .forester),
+                nil,
+                Building(type: .mine)
+            ]
+        ) { slotIndex in
+            print("Tapped slot:", slotIndex)
         }
         .frame(width: 375, height: 667)
     }
