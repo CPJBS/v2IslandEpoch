@@ -18,7 +18,7 @@ struct ResearchType: Codable, Identifiable, Equatable {
         id: "metalHatchets",
         name: "Metal Hatchets",
         description: "Equip foresters with metal tools. +15% wood production.",
-        cost: [.bread: 50, .wood: 45]
+        cost: [.bread: 50, .wood: 45, .insight: 10]
     )
 
     /// All available researches

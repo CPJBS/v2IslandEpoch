@@ -11,12 +11,14 @@ enum ResourceCategory: String, Codable, CaseIterable, Hashable {
     case food
     case material
     case ore
+    case knowledge
 
     var displayName: String {
         switch self {
         case .food: return "Food"
         case .material: return "Material"
         case .ore: return "Ore"
+        case .knowledge: return "Knowledge"
         }
     }
 
@@ -25,6 +27,7 @@ enum ResourceCategory: String, Codable, CaseIterable, Hashable {
         case .food: return "basket.fill"
         case .material: return "tree.fill"
         case .ore: return "cube.box.fill"
+        case .knowledge: return "brain.head.profile"
         }
     }
 }
@@ -36,6 +39,7 @@ enum ResourceType: String, Codable, CaseIterable {
     case ironOre
     case bread
     case berries
+    case insight
 
     var displayName: String {
         switch self {
@@ -44,6 +48,7 @@ enum ResourceType: String, Codable, CaseIterable {
         case .ironOre: return "Iron Ore"
         case .bread: return "Bread"
         case .berries: return "Berries"
+        case .insight: return "Insight"
         }
     }
 
@@ -59,6 +64,7 @@ enum ResourceType: String, Codable, CaseIterable {
         case .ironOre: return "cube.box.fill"
         case .bread: return "basket.fill"
         case .berries: return "leaf.circle.fill"
+        case .insight: return "lightbulb.fill"
         }
     }
 
@@ -72,6 +78,8 @@ enum ResourceType: String, Codable, CaseIterable {
             return .ore
         case .wheat:
             return .material // Wheat is a raw material for bread
+        case .insight:
+            return .knowledge
         }
     }
 }
