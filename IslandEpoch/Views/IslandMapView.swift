@@ -24,6 +24,7 @@ struct IslandMapView: View {
     let gold: Int
     let wheat: Int
     let workers: Int
+    let knowledge: Int
     let buildings: [Building?]
     let onSlotTap: (Int) -> Void  // Passes slot index
 
@@ -99,6 +100,7 @@ struct IslandMapView: View {
                     HStack(spacing: 16) {
                         Label("\(gold)", systemImage: "dollarsign.circle")
                         Label("\(wheat)", systemImage: "leaf.fill")
+                        Label("\(knowledge)", systemImage: "lightbulb.fill")
                         Label("\(workers)", systemImage: "person.3.sequence")
                             .foregroundColor(workers < 10 ? .primary : .red)
                     }
@@ -123,6 +125,7 @@ struct IslandMapView_Previews: PreviewProvider {
             gold: 500,
             wheat: 45,
             workers: 8,
+            knowledge: 12,
             buildings: [
                 Building(type: .tent),
                 Building(type: .farm),
