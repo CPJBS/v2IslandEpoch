@@ -39,16 +39,24 @@ class BuildingManager {
             ))
         }
 
-        // 2. Check building slots
+        // 2. Check fertility requirements
+        if let requiredFertility = type.requiredFertility {
+            let island = gameState.islands[islandIndex]
+            guard island.fertilities.contains(requiredFertility) else {
+                return .failure(.lacksFertility(required: requiredFertility))
+            }
+        }
+
+        // 3. Check building slots
         guard gameState.islands[islandIndex].hasAvailableSlots else {
             return .failure(.noSlots)
         }
 
-        // 3. Create building (no worker check - workers are assigned later)
+        // 4. Create building (no worker check - workers are assigned later)
         let buildingId = UUID()
         let building = Building(id: buildingId, type: type)
 
-        // 4. Determine target slot index
+        // 5. Determine target slot index
         let targetSlotIndex: Int
         if let slotIndex = slotIndex {
             // Use specific slot if provided
@@ -67,7 +75,7 @@ class BuildingManager {
             targetSlotIndex = emptySlotIndex
         }
 
-        // 5. Update state
+        // 6. Update state
         gameState.gold -= type.goldCost
         gameState.islands[islandIndex].buildings[targetSlotIndex] = building
 
@@ -126,6 +134,7 @@ enum BuildError: Error, LocalizedError {
     case noSlots
     case buildingNotFound
     case cannotDemolishLastTent
+    case lacksFertility(required: FertilityType)
 
     var errorDescription: String? {
         switch self {
@@ -137,6 +146,8 @@ enum BuildError: Error, LocalizedError {
             return "Building not found"
         case .cannotDemolishLastTent:
             return "Cannot demolish the last tent - you need at least one for housing"
+        case .lacksFertility(let required):
+            return "Lacks fertility: \(required.displayName)"
         }
     }
 }

@@ -13,7 +13,8 @@ final class GameViewModel: ObservableObject {
     
     // MARK: - Published State
     @Published var gameState: GameState
-    
+    @Published var currentIslandIndex: Int = 0
+
     // MARK: - Managers
     private let buildingManager: BuildingManager
     private let productionManager: ProductionManager
@@ -260,11 +261,18 @@ final class GameViewModel: ObservableObject {
     }
     
     // MARK: - Convenience Accessors
-    
+
     var mainIsland: Island? {
         gameState.mainIsland
     }
-    
+
+    var currentIsland: Island? {
+        guard currentIslandIndex < gameState.islands.count else {
+            return nil
+        }
+        return gameState.islands[currentIslandIndex]
+    }
+
     var emptySlots: Int {
         mainIsland?.availableSlots ?? 0
     }

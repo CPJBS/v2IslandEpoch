@@ -46,19 +46,33 @@ struct IslandTabView: View {
     @State private var showBuildMenu = false
 
     var body: some View {
-        ZStack {
+        VStack(spacing: 0) {
+            // Island Selector
+            if vm.gameState.islands.count > 1 {
+                Picker("Island", selection: $vm.currentIslandIndex) {
+                    ForEach(vm.gameState.islands.indices, id: \.self) { index in
+                        Text(vm.gameState.islands[index].name)
+                            .tag(index)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+            }
+
+            // Island Map
             IslandMapView(
                 gold: vm.gameState.gold,
-                wheat: vm.mainIsland?.inventory[.wheat, default: 0] ?? 0,
-                workers: vm.mainIsland?.unassignedWorkers ?? 0,
-                knowledge: vm.mainIsland?.inventory[.insight, default: 0] ?? 0,
-                buildings: vm.mainIsland?.buildings ?? []
+                wheat: vm.currentIsland?.inventory[.wheat, default: 0] ?? 0,
+                workers: vm.currentIsland?.unassignedWorkers ?? 0,
+                knowledge: vm.currentIsland?.inventory[.insight, default: 0] ?? 0,
+                buildings: vm.currentIsland?.buildings ?? []
             ) { slotIndex in
                 handleSlotTap(slotIndex)
             }
         }
         .sheet(item: $selectedBuilding) { building in
-            BuildingDetailView(building: building, islandIndex: 0)
+            BuildingDetailView(building: building, islandIndex: vm.currentIslandIndex)
                 .environmentObject(vm)
         }
         .sheet(isPresented: $showBuildMenu) {
@@ -70,7 +84,7 @@ struct IslandTabView: View {
     }
 
     private func handleSlotTap(_ slotIndex: Int) {
-        guard let island = vm.mainIsland, slotIndex < island.buildings.count else { return }
+        guard let island = vm.currentIsland, slotIndex < island.buildings.count else { return }
 
         if let building = island.buildings[slotIndex] {
             // Occupied slot - view building details
