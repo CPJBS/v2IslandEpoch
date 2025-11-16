@@ -100,8 +100,15 @@ struct ResearchView: View {
         guard let island = vm.mainIsland else { return false }
 
         for (resource, amount) in research.cost {
-            if !island.inventory.has(resource, amount: amount) {
-                return false
+            // Insight is a shared resource
+            if resource == .insight {
+                if vm.gameState.insight < amount {
+                    return false
+                }
+            } else {
+                if !island.inventory.has(resource, amount: amount) {
+                    return false
+                }
             }
         }
 
@@ -109,6 +116,11 @@ struct ResearchView: View {
     }
 
     private func hasEnoughResource(_ resource: ResourceType, amount: Int) -> Bool {
+        // Insight is a shared resource
+        if resource == .insight {
+            return vm.gameState.insight >= amount
+        }
+
         guard let island = vm.mainIsland else { return false }
         return island.inventory.has(resource, amount: amount)
     }

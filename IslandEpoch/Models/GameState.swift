@@ -17,7 +17,10 @@ struct GameState: Codable {
     
     // MARK: - Economy
     var gold: Int = 0
-    
+
+    // MARK: - Shared Resources
+    var insight: Int = 0
+
     // MARK: - Territory
     var islands: [Island] = []
 

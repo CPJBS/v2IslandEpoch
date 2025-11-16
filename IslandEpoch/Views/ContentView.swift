@@ -65,7 +65,7 @@ struct IslandTabView: View {
                 gold: vm.gameState.gold,
                 wheat: vm.currentIsland?.inventory[.wheat, default: 0] ?? 0,
                 workers: vm.currentIsland?.unassignedWorkers ?? 0,
-                knowledge: vm.currentIsland?.inventory[.insight, default: 0] ?? 0,
+                knowledge: vm.gameState.insight,
                 buildings: vm.currentIsland?.buildings ?? []
             ) { slotIndex in
                 handleSlotTap(slotIndex)
