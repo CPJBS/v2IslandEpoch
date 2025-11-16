@@ -15,14 +15,22 @@ struct Island: Identifiable, Codable {
     // MARK: - Resources & Workers
     var inventory: Inventory = [:]
 
+    // MARK: - Fertilities
+    var fertilities: [FertilityType] = []
+
+    // MARK: - Unlock Requirements
+    var unlockRequirements: [String] = [] // Research IDs required to unlock this island
+
     // MARK: - Buildings
     var buildings: [Building?] = []
     let maxSlots: Int
 
     // MARK: - Initialization
-    init(name: String, maxSlots: Int) {
+    init(name: String, maxSlots: Int, fertilities: [FertilityType] = [], unlockRequirements: [String] = []) {
         self.name = name
         self.maxSlots = maxSlots
+        self.fertilities = fertilities
+        self.unlockRequirements = unlockRequirements
         // Initialize with fixed number of empty slots
         self.buildings = Array(repeating: nil, count: maxSlots)
     }
@@ -52,10 +60,24 @@ struct Island: Identifiable, Codable {
         workersAvailable - totalWorkersAssigned
     }
 
+    /// Check if this island is unlocked based on research requirements
+    func isUnlocked(completedResearch: [CompletedResearch]) -> Bool {
+        // For playtesting: all islands unlocked by default
+        // TODO: Enable when research system is ready
+        return true
+
+        // Production code (commented out for playtesting):
+        // if unlockRequirements.isEmpty {
+        //     return true // No requirements means always unlocked
+        // }
+        // let completedIds = Set(completedResearch.map { $0.researchId })
+        // return unlockRequirements.allSatisfy { completedIds.contains($0) }
+    }
+
     // MARK: - Codable (with migration support)
 
     enum CodingKeys: String, CodingKey {
-        case id, name, inventory, buildings, maxSlots
+        case id, name, inventory, buildings, maxSlots, fertilities, unlockRequirements
     }
 
     init(from decoder: Decoder) throws {
@@ -65,6 +87,10 @@ struct Island: Identifiable, Codable {
         name = try container.decode(String.self, forKey: .name)
         inventory = try container.decode(Inventory.self, forKey: .inventory)
         maxSlots = try container.decode(Int.self, forKey: .maxSlots)
+
+        // Decode new fields with defaults for migration
+        fertilities = (try? container.decode([FertilityType].self, forKey: .fertilities)) ?? []
+        unlockRequirements = (try? container.decode([String].self, forKey: .unlockRequirements)) ?? []
 
         // Try to decode as new format [Building?] first
         if let optionalBuildings = try? container.decode([Building?].self, forKey: .buildings) {

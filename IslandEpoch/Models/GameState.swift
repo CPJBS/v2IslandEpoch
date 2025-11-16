@@ -54,16 +54,20 @@ struct GameState: Codable {
         // Create main island with starting tent
         var mainIsland = Island(
             name: "Main Isle",
-            maxSlots: 6
+            maxSlots: 6,
+            fertilities: [.grainland, .forest, .wildlife]
         )
         mainIsland.inventory = [.wheat: 0, .wood: 0, .ironOre: 0]
         // Add starting tent at first slot
         mainIsland.buildings[0] = Building(id: UUID(), type: .tent)
 
         // Create secondary island with starting tent
+        // Note: Unlock requirements stubbed for playtesting (would require "exploration" research)
         var ironIsland = Island(
             name: "Ironcliff",
-            maxSlots: 4
+            maxSlots: 4,
+            fertilities: [.ironDeposits, .forest],
+            unlockRequirements: ["exploration"] // Stubbed for future use
         )
         ironIsland.inventory = [.wheat: 0, .wood: 0, .ironOre: 0]
         // Add starting tent at first slot

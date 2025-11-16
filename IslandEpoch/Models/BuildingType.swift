@@ -15,7 +15,8 @@ struct BuildingType: Codable, Identifiable, Equatable {
     let consumes: Inventory       // Input per tick
     let goldCost: Int             // Cost to build
     let availableFromEpoch: Int   // Epoch when this building becomes available
-    
+    let requiredFertility: FertilityType? // Required fertility to build (nil = no requirement)
+
     // MARK: - Static Catalog
 
     // Housing
@@ -27,7 +28,8 @@ struct BuildingType: Codable, Identifiable, Equatable {
         produces: [:],
         consumes: [:],
         goldCost: 30,
-        availableFromEpoch: 1
+        availableFromEpoch: 1,
+        requiredFertility: nil
     )
 
     // Production Buildings
@@ -39,7 +41,8 @@ struct BuildingType: Codable, Identifiable, Equatable {
         produces: [.wheat: 2],
         consumes: [:],
         goldCost: 50,
-        availableFromEpoch: 1
+        availableFromEpoch: 1,
+        requiredFertility: .grainland
     )
 
     static let forester = BuildingType(
@@ -50,7 +53,8 @@ struct BuildingType: Codable, Identifiable, Equatable {
         produces: [.wood: 2],
         consumes: [:],
         goldCost: 40,
-        availableFromEpoch: 1
+        availableFromEpoch: 1,
+        requiredFertility: .forest
     )
 
     static let mine = BuildingType(
@@ -61,7 +65,8 @@ struct BuildingType: Codable, Identifiable, Equatable {
         produces: [.ironOre: 1],
         consumes: [:],
         goldCost: 80,
-        availableFromEpoch: 1
+        availableFromEpoch: 1,
+        requiredFertility: .ironDeposits
     )
 
     static let bakery = BuildingType(
@@ -72,7 +77,8 @@ struct BuildingType: Codable, Identifiable, Equatable {
         produces: [.bread: 4],
         consumes: [.wheat: 1],
         goldCost: 100,
-        availableFromEpoch: 1
+        availableFromEpoch: 1,
+        requiredFertility: nil
     )
 
     static let forager = BuildingType(
@@ -83,7 +89,8 @@ struct BuildingType: Codable, Identifiable, Equatable {
         produces: [.berries: 1],
         consumes: [:],
         goldCost: 20,
-        availableFromEpoch: 1
+        availableFromEpoch: 1,
+        requiredFertility: .wildlife
     )
 
     static let library = BuildingType(
@@ -94,7 +101,8 @@ struct BuildingType: Codable, Identifiable, Equatable {
         produces: [.insight: 1],
         consumes: [:],
         goldCost: 150,
-        availableFromEpoch: 1
+        availableFromEpoch: 1,
+        requiredFertility: nil
     )
 
     /// All available building types

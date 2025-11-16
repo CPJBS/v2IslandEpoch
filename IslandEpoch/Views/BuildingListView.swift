@@ -14,19 +14,33 @@ struct BuildingListView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                // Game Stats Section
-                Section("Resources") {
-                    HStack {
-                        Image(systemName: "dollarsign.circle.fill")
-                            .foregroundColor(.yellow)
-                        Text("Gold")
-                        Spacer()
-                        Text("\(vm.gameState.gold)")
-                            .bold()
+            VStack(spacing: 0) {
+                // Island Selector
+                if vm.gameState.islands.count > 1 {
+                    Picker("Island", selection: $vm.currentIslandIndex) {
+                        ForEach(vm.gameState.islands.indices, id: \.self) { index in
+                            Text(vm.gameState.islands[index].name)
+                                .tag(index)
+                        }
                     }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                }
 
-                    if let island = vm.mainIsland {
+                List {
+                    // Game Stats Section
+                    Section("Resources") {
+                        HStack {
+                            Image(systemName: "dollarsign.circle.fill")
+                                .foregroundColor(.yellow)
+                            Text("Gold")
+                            Spacer()
+                            Text("\(vm.gameState.gold)")
+                                .bold()
+                        }
+
+                        if let island = vm.currentIsland {
                         // Group resources by category
                         let categories = ResourceCategory.allCases
 
@@ -78,7 +92,7 @@ struct BuildingListView: View {
                 
                 // Buildings Section
                 Section("Buildings") {
-                    if let island = vm.mainIsland {
+                    if let island = vm.currentIsland {
                         // Render all slots in order
                         ForEach(Array(island.buildings.enumerated()), id: \.offset) { index, building in
                             if let building = building {
@@ -92,7 +106,7 @@ struct BuildingListView: View {
                 
                 // Info Section
                 Section("Island Info") {
-                    if let island = vm.mainIsland {
+                    if let island = vm.currentIsland {
                         LabeledContent("Island", value: island.name)
                         LabeledContent("Total Workers", value: "\(island.workersAvailable)")
                         LabeledContent("Assigned Workers", value: "\(island.totalWorkersAssigned)")
@@ -100,16 +114,17 @@ struct BuildingListView: View {
                         LabeledContent("Slots Used", value: "\(island.buildings.compactMap { $0 }.count)/\(island.maxSlots)")
                     }
                 }
-            }
-            .navigationTitle("Main Isle")
-            .sheet(item: $selectedBuilding) { building in
-                BuildingDetailView(building: building, islandIndex: 0)
-                    .environmentObject(vm)
-            }
-            .sheet(isPresented: $showBuildMenu) {
-                if let slotIndex = selectedSlotIndex {
-                    BuildMenuView(slotIndex: slotIndex)
+                }
+                .navigationTitle(vm.currentIsland?.name ?? "Island")
+                .sheet(item: $selectedBuilding) { building in
+                    BuildingDetailView(building: building, islandIndex: vm.currentIslandIndex)
                         .environmentObject(vm)
+                }
+                .sheet(isPresented: $showBuildMenu) {
+                    if let slotIndex = selectedSlotIndex {
+                        BuildMenuView(slotIndex: slotIndex)
+                            .environmentObject(vm)
+                    }
                 }
             }
         }
@@ -167,7 +182,7 @@ struct BuildingListView: View {
         }
 
         // Calculate actual production based on productivity
-        let productivity = vm.getProductivity(for: building.id, onIslandIndex: 0)
+        let productivity = vm.getProductivity(for: building.id, onIslandIndex: vm.currentIslandIndex)
         let actualAmount = ProductivityCalculator.calculateActualProduction(baseAmount, productivity: productivity)
 
         return "+\(actualAmount) \(resource.displayNameWithCategory)/tick"
@@ -193,7 +208,7 @@ struct BuildingListView: View {
                         Text("Provides \(building.type.providesWorkers) workers")
                             .font(.caption)
                     } else if building.type.workers > 0 {
-                        let productivity = vm.getProductivity(for: building.id, onIslandIndex: 0)
+                        let productivity = vm.getProductivity(for: building.id, onIslandIndex: vm.currentIslandIndex)
                         let productivityStr = String(format: "%.0f%%", productivity * 100)
                         Text("\(building.assignedWorkers)/\(building.type.workers) workers (\(productivityStr))")
                             .font(.caption)

@@ -22,6 +22,9 @@ struct BuildMenuView: View {
         NavigationStack {
             List {
                 ForEach(availableBuildings, id: \.id) { type in
+                    let canBuild = canBuildOnCurrentIsland(type)
+                    let lacksFertility = !canBuild && type.requiredFertility != nil
+
                     Button {
                         buildBuilding(type)
                     } label: {
@@ -29,7 +32,7 @@ struct BuildMenuView: View {
                             Image(systemName: type.icon)
                                 .font(.title2)
                                 .frame(width: 40)
-                                .foregroundColor(.blue)
+                                .foregroundColor(canBuild ? .blue : .gray)
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(type.name)
@@ -47,11 +50,20 @@ struct BuildMenuView: View {
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
+
+                                // Show fertility warning
+                                if lacksFertility, let fertility = type.requiredFertility {
+                                    Text("⚠️ Lacks fertility: \(fertility.displayName)")
+                                        .font(.caption)
+                                        .foregroundColor(.red)
+                                }
                             }
 
                             Spacer()
                         }
                     }
+                    .opacity(canBuild ? 1.0 : 0.5)
+                    .disabled(!canBuild)
                 }
             }
             .navigationTitle("Build on Slot \(slotIndex + 1)")
@@ -84,8 +96,22 @@ struct BuildMenuView: View {
         }
     }
 
+    private func canBuildOnCurrentIsland(_ buildingType: BuildingType) -> Bool {
+        guard let island = vm.currentIsland else {
+            return false
+        }
+
+        // Check fertility requirement
+        if let requiredFertility = buildingType.requiredFertility {
+            return island.fertilities.contains(requiredFertility)
+        }
+
+        // No fertility requirement
+        return true
+    }
+
     private func buildBuilding(_ type: BuildingType) {
-        let result = vm.buildBuilding(type, onIslandIndex: 0, atSlotIndex: slotIndex)
+        let result = vm.buildBuilding(type, onIslandIndex: vm.currentIslandIndex, atSlotIndex: slotIndex)
 
         switch result {
         case .success:
