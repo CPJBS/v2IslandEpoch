@@ -107,14 +107,26 @@ final class GameViewModel: ObservableObject {
 
         // Verify resources
         for (resource, amount) in research.cost {
-            if !gameState.islands[islandIndex].inventory.has(resource, amount: amount) {
-                return .failure(.insufficientResources)
+            // Insight is a shared resource
+            if resource == .insight {
+                if gameState.insight < amount {
+                    return .failure(.insufficientResources)
+                }
+            } else {
+                if !gameState.islands[islandIndex].inventory.has(resource, amount: amount) {
+                    return .failure(.insufficientResources)
+                }
             }
         }
 
         // Deduct resources
         for (resource, amount) in research.cost {
-            gameState.islands[islandIndex].inventory.remove(resource, amount: amount)
+            // Insight is a shared resource
+            if resource == .insight {
+                gameState.insight -= amount
+            } else {
+                gameState.islands[islandIndex].inventory.remove(resource, amount: amount)
+            }
         }
 
         // Complete the research

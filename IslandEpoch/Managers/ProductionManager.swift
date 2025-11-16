@@ -21,7 +21,7 @@ class ProductionManager {
     /// Process one tick for all islands
     func processTick(gameState: inout GameState) {
         for index in gameState.islands.indices {
-            processIslandTick(island: &gameState.islands[index])
+            processIslandTick(island: &gameState.islands[index], gameState: &gameState)
         }
     }
     
@@ -130,8 +130,8 @@ class ProductionManager {
     }
 
     // MARK: - Private Methods
-    
-    private func processIslandTick(island: inout Island) {
+
+    private func processIslandTick(island: inout Island, gameState: inout GameState) {
         for building in island.buildings.compactMap({ $0 }) {
             // 1. Calculate productivity based on assigned workers and other factors
             let productivity = ProductivityCalculator.calculateProductivity(for: building, gameState: gameState)
@@ -167,7 +167,13 @@ class ProductionManager {
             // 5. Produce outputs (productivity-adjusted)
             for (resource, baseAmount) in building.type.produces {
                 let actualAmount = ProductivityCalculator.calculateActualProduction(baseAmount, productivity: productivity)
-                island.inventory.add(resource, amount: actualAmount)
+
+                // Insight is a shared resource across all islands
+                if resource == .insight {
+                    gameState.insight += actualAmount
+                } else {
+                    island.inventory.add(resource, amount: actualAmount)
+                }
             }
         }
     }
