@@ -119,7 +119,9 @@ struct DailyLoginView: View {
 
                 Spacer()
             }
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") {
@@ -224,9 +226,9 @@ private struct DayCard: View {
 
     private var cardBackground: Color {
         switch state {
-        case .claimed: return Color(.systemGray5)
+        case .claimed: return Color.gray.opacity(0.3)
         case .today: return .orange
-        case .locked: return Color(.systemGray6)
+        case .locked: return Color.gray.opacity(0.15)
         }
     }
 
@@ -234,7 +236,7 @@ private struct DayCard: View {
         switch state {
         case .claimed: return .green.opacity(0.3)
         case .today: return .orange
-        case .locked: return Color(.systemGray4)
+        case .locked: return Color.gray.opacity(0.4)
         }
     }
 }

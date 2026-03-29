@@ -102,6 +102,8 @@ struct GameState: Codable {
         return completedResearches.contains { $0.researchId == researchId }
     }
     
+    init() {}
+
     // MARK: - Codable with migration support
 
     enum CodingKeys: String, CodingKey {

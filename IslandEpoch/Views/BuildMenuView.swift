@@ -111,7 +111,9 @@ struct BuildMenuView: View {
                 }
             }
             .navigationTitle("Build on Slot \(slotIndex + 1)")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {

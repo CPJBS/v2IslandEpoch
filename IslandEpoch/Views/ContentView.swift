@@ -43,14 +43,14 @@ struct ContentView: View {
             #endif
         }
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .automatic) {
                 HStack(spacing: 4) {
                     Image(systemName: "diamond.fill").foregroundColor(.cyan).font(.caption)
                     Text("\(vm.gameState.gems)").font(.callout.bold())
                 }
             }
         }
-        .fullScreenCover(isPresented: $showWelcomeBack) {
+        .sheet(isPresented: $showWelcomeBack) {
             if let report = offlineReport {
                 WelcomeBackView(report: report, onCollect: { showWelcomeBack = false }, onCollectDouble: {
                     if vm.gameState.gems >= 5 {
@@ -184,7 +184,9 @@ struct IslandTabView: View {
                 }
             }
             .navigationTitle("Epoch \(vm.currentEpoch): \(vm.currentEpochName)")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .sheet(item: $selectedBuilding) { building in
                 BuildingDetailView(building: building, islandIndex: vm.currentIslandIndex)
                     .environmentObject(vm)
