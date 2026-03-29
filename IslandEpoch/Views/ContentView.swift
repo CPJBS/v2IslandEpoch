@@ -8,7 +8,11 @@ import OSLog
 
 struct ContentView: View {
     @StateObject private var vm = GameViewModel()
-    
+    @Environment(\.scenePhase) var scenePhase
+    @State private var showWelcomeBack = false
+    @State private var offlineReport: OfflineReport?
+    @State private var showDailyLogin = false
+
     var body: some View {
         TabView {
             IslandTabView()
@@ -26,14 +30,88 @@ struct ContentView: View {
                     Label("Research", systemImage: "flask")
                 }
 
+            SettingsView()
+                .tabItem { Label("Settings", systemImage: "gearshape") }
+                .tag(3)
+
+            #if DEBUG
             DebugView()
                 .tabItem {
                     Label("Debug", systemImage: "ladybug")
                 }
+                .tag(4)
+            #endif
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                HStack(spacing: 4) {
+                    Image(systemName: "diamond.fill").foregroundColor(.cyan).font(.caption)
+                    Text("\(vm.gameState.gems)").font(.callout.bold())
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $showWelcomeBack) {
+            if let report = offlineReport {
+                WelcomeBackView(report: report, onCollect: { showWelcomeBack = false }, onCollectDouble: {
+                    if vm.gameState.gems >= 5 {
+                        vm.gameState.gems -= 5
+                        vm.gameState.gold += report.goldEarned
+                    }
+                    showWelcomeBack = false
+                }).environmentObject(vm)
+            }
+        }
+        .sheet(isPresented: $showDailyLogin) {
+            DailyLoginView { gold, gems in
+                vm.gameState.gold += gold
+                vm.awardGems(gems, source: "daily_login")
+                vm.gameState.dailyLogin.lastClaimDate = Date()
+                vm.gameState.dailyLogin.currentStreak += 1
+                vm.gameState.dailyLogin.totalDaysClaimed += 1
+                showDailyLogin = false
+            }.environmentObject(vm)
+        }
+        .overlay {
+            if vm.gameState.tutorialStep > 0 {
+                TutorialOverlayView(tutorialStep: $vm.gameState.tutorialStep).environmentObject(vm)
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            switch newPhase {
+            case .background:
+                vm.saveGame()
+                if vm.gameState.settings.notificationsEnabled {
+                    NotificationManager.shared.scheduleAllPending(gameState: vm.gameState)
+                }
+            case .active:
+                NotificationManager.shared.cancelAll()
+                let elapsed = Date().timeIntervalSince(vm.gameState.lastUpdateTime)
+                if elapsed > 10 {
+                    let report = OfflineProgressManager.calculateOfflineProgress(gameState: &vm.gameState, elapsedSeconds: elapsed)
+                    offlineReport = report
+                    showWelcomeBack = true
+                }
+                vm.gameState.statistics.sessionsCount += 1
+            default: break
+            }
         }
         .environmentObject(vm)
         .onAppear {
+            NotificationManager.shared.requestPermission()
             vm.start()
+
+            // Start tutorial for new players
+            if vm.gameState.tutorialStep == 0 {
+                vm.gameState.tutorialStep = 1
+            }
+            // Check daily login
+            if let lastClaim = vm.gameState.dailyLogin.lastClaimDate {
+                if !Calendar.current.isDateInToday(lastClaim) {
+                    showDailyLogin = true
+                }
+            } else {
+                showDailyLogin = true
+            }
         }
     }
 }
@@ -46,39 +124,75 @@ struct IslandTabView: View {
     @State private var showBuildMenu = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Island Selector
-            if vm.gameState.islands.count > 1 {
-                Picker("Island", selection: $vm.currentIslandIndex) {
-                    ForEach(vm.gameState.islands.indices, id: \.self) { index in
-                        Text(vm.gameState.islands[index].name)
-                            .tag(index)
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Island Selector with lock support
+                if vm.gameState.islands.count > 1 {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(vm.gameState.islands.indices, id: \.self) { index in
+                                let island = vm.gameState.islands[index]
+                                let isUnlocked = vm.isIslandUnlocked(island)
+
+                                Button {
+                                    if isUnlocked {
+                                        vm.currentIslandIndex = index
+                                    }
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        if !isUnlocked {
+                                            Image(systemName: "lock.fill")
+                                                .font(.caption2)
+                                        }
+                                        Text(island.name)
+                                            .font(.subheadline)
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        isUnlocked
+                                            ? (vm.currentIslandIndex == index ? Color.blue : Color.blue.opacity(0.15))
+                                            : Color.gray.opacity(0.15)
+                                    )
+                                    .foregroundColor(
+                                        isUnlocked
+                                            ? (vm.currentIslandIndex == index ? .white : .blue)
+                                            : .gray
+                                    )
+                                    .cornerRadius(8)
+                                }
+                                .disabled(!isUnlocked)
+                            }
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
                     }
                 }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-            }
 
-            // Island Map
-            IslandMapView(
-                gold: vm.gameState.gold,
-                wheat: vm.currentIsland?.inventory[.wheat, default: 0] ?? 0,
-                workers: vm.currentIsland?.unassignedWorkers ?? 0,
-                knowledge: vm.currentIsland?.inventory[.insight, default: 0] ?? 0,
-                buildings: vm.currentIsland?.buildings ?? []
-            ) { slotIndex in
-                handleSlotTap(slotIndex)
+                // Island Map
+                if let island = vm.currentIsland {
+                    IslandMapView(
+                        gold: vm.gameState.gold,
+                        island: island,
+                        epochNumber: vm.currentEpoch,
+                        epochName: vm.currentEpochName,
+                        epochDescription: vm.currentEpochDescription
+                    ) { slotIndex in
+                        handleSlotTap(slotIndex)
+                    }
+                }
             }
-        }
-        .sheet(item: $selectedBuilding) { building in
-            BuildingDetailView(building: building, islandIndex: vm.currentIslandIndex)
-                .environmentObject(vm)
-        }
-        .sheet(isPresented: $showBuildMenu) {
-            if let slotIndex = selectedSlotIndex {
-                BuildMenuView(slotIndex: slotIndex)
+            .navigationTitle("Epoch \(vm.currentEpoch): \(vm.currentEpochName)")
+            .navigationBarTitleDisplayMode(.inline)
+            .sheet(item: $selectedBuilding) { building in
+                BuildingDetailView(building: building, islandIndex: vm.currentIslandIndex)
                     .environmentObject(vm)
+            }
+            .sheet(isPresented: $showBuildMenu) {
+                if let slotIndex = selectedSlotIndex {
+                    BuildMenuView(slotIndex: slotIndex)
+                        .environmentObject(vm)
+                }
             }
         }
     }

@@ -11,9 +11,10 @@ struct ProductivityCalculator {
     /// Calculate the productivity multiplier for a building
     /// - Parameters:
     ///   - building: The building to calculate productivity for
-    ///   - gameState: The current game state (for future research bonuses, etc.)
-    /// - Returns: A multiplier between 0.0 and 1.0 representing productivity percentage
-    static func calculateProductivity(for building: Building, gameState: GameState? = nil) -> Double {
+    ///   - island: The island the building is on (for hunger penalty)
+    ///   - gameState: The current game state (for research bonuses, etc.)
+    /// - Returns: A multiplier representing productivity percentage
+    static func calculateProductivity(for building: Building, island: Island? = nil, gameState: GameState? = nil) -> Double {
         var productivity: Double = 1.0
 
         // 1. Worker-based productivity
@@ -22,13 +23,17 @@ struct ProductivityCalculator {
         // 2. Research bonuses
         productivity *= researchProductivityMultiplier(for: building, gameState: gameState)
 
-        // 3. STUB: Building level bonuses (to be implemented later)
-        // productivity *= levelProductivityMultiplier(building.level)
+        // 3. Building level bonuses (soft-exponential curve for deep progression)
+        let lvl = Double(building.level - 1)
+        let levelMultiplier = 1.0 + 0.10 * lvl + 0.002 * pow(lvl, 1.5)
+        productivity *= levelMultiplier
 
-        // 4. STUB: Island bonuses (to be implemented later)
-        // productivity *= islandProductivityMultiplier(gameState: gameState)
+        // 4. Hunger penalty
+        if let island = island, island.isHungry {
+            productivity *= 0.5
+        }
 
-        return min(productivity, 1.0) // Cap at 100%
+        return productivity
     }
 
     // MARK: - Worker Productivity
@@ -56,43 +61,50 @@ struct ProductivityCalculator {
 
     // MARK: - Research Productivity
 
-    /// Calculate productivity multiplier from research
+    /// Calculate productivity multiplier from completed research effects
     private static func researchProductivityMultiplier(for building: Building, gameState: GameState?) -> Double {
         guard let gameState = gameState else { return 1.0 }
 
         var multiplier: Double = 1.0
 
-        // Metal Hatchets: +15% wood production for Foresters
-        if building.type.id == "forester" && gameState.hasCompletedResearch("metalHatchets") {
-            multiplier *= 1.15
+        // Walk all completed researches and apply matching effects
+        for completedResearch in gameState.completedResearches {
+            guard let researchType = ResearchType.all.first(where: { $0.id == completedResearch.researchId }) else { continue }
+            for effect in researchType.effects {
+                switch effect {
+                case .productionBonus(let buildingId, let bonus):
+                    if building.type.id == buildingId {
+                        multiplier *= bonus
+                    }
+                case .allProductionBonus(let bonus):
+                    multiplier *= bonus
+                case .insightProductionBonus(let bonus):
+                    // Apply to buildings that produce insight (library, university)
+                    if building.type.produces[.insight] != nil {
+                        multiplier *= bonus
+                    }
+                case .foodProductionBonus(let bonus):
+                    // Apply to buildings that produce food (farm, bakery, forager, smokehouse)
+                    let producesFood = building.type.produces[.wheat] != nil
+                        || building.type.produces[.bread] != nil
+                        || building.type.produces[.berries] != nil
+                    if producesFood {
+                        multiplier *= bonus
+                    }
+                default:
+                    break
+                }
+            }
         }
 
         return multiplier
     }
 
-    // MARK: - Future Productivity Factors (Stubs)
-
-    /// STUB: Calculate productivity multiplier from building level
-    /// To be implemented when building upgrade system is enhanced
-    private static func levelProductivityMultiplier(_ level: Int) -> Double {
-        // TODO: Implement level-based productivity bonuses
-        // Example: 1.0 + (Double(level - 1) * 0.1) // +10% per level
-        return 1.0
-    }
-
-    /// STUB: Calculate productivity multiplier from island bonuses
-    /// To be implemented when island-specific bonuses are added
-    private static func islandProductivityMultiplier(gameState: GameState?) -> Double {
-        // TODO: Implement island-specific productivity bonuses
-        // Example: Check for island traits, nearby buildings, etc.
-        return 1.0
-    }
-
     // MARK: - Helpers
 
     /// Get productivity as a percentage string for display
-    static func productivityPercentage(for building: Building, gameState: GameState? = nil) -> String {
-        let productivity = calculateProductivity(for: building, gameState: gameState)
+    static func productivityPercentage(for building: Building, island: Island? = nil, gameState: GameState? = nil) -> String {
+        let productivity = calculateProductivity(for: building, island: island, gameState: gameState)
         return String(format: "%.0f%%", productivity * 100)
     }
 

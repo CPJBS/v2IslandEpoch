@@ -59,8 +59,10 @@ struct BuildingListView: View {
                                             .font(.headline)
                                         Spacer()
                                         VStack(alignment: .trailing, spacing: 2) {
-                                            Text("\(categoryTotal)")
+                                            let cap = island.storageCapForCategory(category)
+                                            Text("\(categoryTotal)/\(cap)")
                                                 .bold()
+                                                .foregroundColor(categoryTotal >= cap ? .red : (Double(categoryTotal) >= Double(cap) * 0.8 ? .orange : .primary))
                                         }
                                     }
 
@@ -130,6 +132,14 @@ struct BuildingListView: View {
         }
     }
     
+    // MARK: - Helpers
+
+    private func formatTime(_ s: TimeInterval) -> String {
+        let m = Int(s) / 60
+        let sec = Int(s) % 60
+        return String(format: "%d:%02d", m, sec)
+    }
+
     // MARK: - Resource Rate Ticker
 
     @ViewBuilder
@@ -196,11 +206,24 @@ struct BuildingListView: View {
                 .foregroundColor(.blue)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(building.type.name)
+                let tierNum = BuildingTierCatalog.tierNumber(for: building.level)
+                let tierInfo = BuildingTierCatalog.tier(for: building.type.id, tierNumber: tierNum)
+                let levelInTier = BuildingTierCatalog.levelWithinTier(for: building.level)
+                Text("\(tierInfo.name) \(levelInTier)/10")
                     .font(.headline)
+                if building.isUnderConstruction {
+                    Text("Building... \(formatTime(building.constructionTimeRemaining))")
+                        .font(.subheadline)
+                        .foregroundColor(.orange)
+                }
                 Text(actualProductionDescription(for: building))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
+                if building.type.goldProduction > 0 {
+                    Text("+\(building.type.goldProduction) gold/s")
+                        .font(.caption)
+                        .foregroundColor(.yellow)
+                }
                 HStack(spacing: 4) {
                     Image(systemName: "person.3")
                         .font(.caption)

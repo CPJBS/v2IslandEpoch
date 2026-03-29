@@ -12,6 +12,8 @@ enum FertilityType: String, Codable, CaseIterable, Identifiable {
     case forest
     case ironDeposits
     case wildlife
+    case stoneDeposits
+    case coalVeins
 
     var id: String { rawValue }
 
@@ -25,6 +27,10 @@ enum FertilityType: String, Codable, CaseIterable, Identifiable {
             return "Iron Deposits"
         case .wildlife:
             return "Wildlife"
+        case .stoneDeposits:
+            return "Stone Deposits"
+        case .coalVeins:
+            return "Coal Veins"
         }
     }
 
@@ -38,6 +44,10 @@ enum FertilityType: String, Codable, CaseIterable, Identifiable {
             return "mountain.2.fill"
         case .wildlife:
             return "hare.fill"
+        case .stoneDeposits:
+            return "square.stack.3d.up.fill"
+        case .coalVeins:
+            return "flame.fill"
         }
     }
 
@@ -51,6 +61,10 @@ enum FertilityType: String, Codable, CaseIterable, Identifiable {
             return "Rich mineral deposits for mining"
         case .wildlife:
             return "Natural habitat with abundant wildlife"
+        case .stoneDeposits:
+            return "Rocky terrain with quarriable stone"
+        case .coalVeins:
+            return "Underground seams of coal"
         }
     }
 }

@@ -18,52 +18,96 @@ struct BuildMenuView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
 
+    private func formatTime(_ seconds: TimeInterval) -> String {
+        let mins = Int(seconds) / 60
+        let secs = Int(seconds) % 60
+        return String(format: "%d:%02d", mins, secs)
+    }
+
+    private var busyBuilding: Building? {
+        vm.currentIsland?.buildings.compactMap({ $0 }).first(where: { $0.isUnderConstruction })
+    }
+
     var body: some View {
         NavigationStack {
             List {
-                ForEach(availableBuildings, id: \.id) { type in
-                    let canBuild = canBuildOnCurrentIsland(type)
-                    let lacksFertility = !canBuild && type.requiredFertility != nil
-
-                    Button {
-                        buildBuilding(type)
-                    } label: {
+                // Builder busy warning
+                if let busy = busyBuilding {
+                    Section {
                         HStack {
-                            Image(systemName: type.icon)
-                                .font(.title2)
-                                .frame(width: 40)
-                                .foregroundColor(canBuild ? .blue : .gray)
+                            Image(systemName: "hammer.fill")
+                            Text("Builder busy — \(busy.type.name) completing in \(formatTime(busy.constructionTimeRemaining))")
+                        }
+                        .foregroundColor(.orange)
+                    }
+                }
 
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(type.name)
-                                    .font(.headline)
-                                if type.providesWorkers > 0 {
-                                    Text("\(type.goldCost) gold • Provides \(type.providesWorkers) workers")
+                Section {
+                    ForEach(availableBuildings, id: \.id) { type in
+                        let canBuild = canBuildOnCurrentIsland(type)
+                        let lacksFertility = !canBuild && type.requiredFertility != nil
+
+                        Button {
+                            buildBuilding(type)
+                        } label: {
+                            HStack {
+                                Image(systemName: type.icon)
+                                    .font(.title2)
+                                    .frame(width: 40)
+                                    .foregroundColor(canBuild && busyBuilding == nil ? .blue : .gray)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(type.name)
+                                        .font(.headline)
+                                    if type.providesWorkers > 0 {
+                                        Text("\(type.goldCost) gold • Provides \(type.providesWorkers) workers")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    } else if type.workers > 0 {
+                                        Text("\(type.goldCost) gold • Max \(type.workers) workers")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    } else {
+                                        Text("\(type.goldCost) gold")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+
+                                    Text("Build time: \(formatTime(type.constructionTime))")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
-                                } else if type.workers > 0 {
-                                    Text("\(type.goldCost) gold • Max \(type.workers) workers")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                } else {
-                                    Text("\(type.goldCost) gold")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
+
+                                    // Show fertility warning
+                                    if lacksFertility, let fertility = type.requiredFertility {
+                                        Text("⚠️ Lacks fertility: \(fertility.displayName)")
+                                            .font(.caption)
+                                            .foregroundColor(.red)
+                                    }
                                 }
 
-                                // Show fertility warning
-                                if lacksFertility, let fertility = type.requiredFertility {
-                                    Text("⚠️ Lacks fertility: \(fertility.displayName)")
-                                        .font(.caption)
-                                        .foregroundColor(.red)
-                                }
+                                Spacer()
                             }
+                        }
+                        .opacity(canBuild && busyBuilding == nil ? 1.0 : 0.5)
+                        .disabled(!canBuild || busyBuilding != nil)
+                    }
+                }
 
-                            Spacer()
+                if !upcomingBuildings.isEmpty {
+                    Section("Coming in next epoch") {
+                        ForEach(upcomingBuildings, id: \.id) { building in
+                            HStack {
+                                Image(systemName: "lock.fill")
+                                    .foregroundColor(.gray)
+                                Text(building.name)
+                                    .foregroundColor(.gray)
+                                Spacer()
+                                Text("Epoch \(building.availableFromEpoch)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
-                    .opacity(canBuild ? 1.0 : 0.5)
-                    .disabled(!canBuild)
                 }
             }
             .navigationTitle("Build on Slot \(slotIndex + 1)")
@@ -91,9 +135,11 @@ struct BuildMenuView: View {
     // MARK: - Private Helpers
 
     private var availableBuildings: [BuildingType] {
-        BuildingType.all.filter { buildingType in
-            buildingType.availableFromEpoch <= vm.gameState.epochTracker.currentEpoch
-        }
+        BuildingType.all.filter { $0.availableFromEpoch <= vm.currentEpoch }
+    }
+
+    private var upcomingBuildings: [BuildingType] {
+        BuildingType.all.filter { $0.availableFromEpoch == vm.currentEpoch + 1 }
     }
 
     private func canBuildOnCurrentIsland(_ buildingType: BuildingType) -> Bool {

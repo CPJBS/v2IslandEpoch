@@ -71,56 +71,122 @@ final class GameViewModel: ObservableObject {
         let delta = now.timeIntervalSince(gameState.lastUpdateTime)
         gameState.totalGameTime += delta
         gameState.lastUpdateTime = now
-        
-        // 2. Passive gold income
-        gameState.gold += gameState.totalGoldIncome
-        
-        // 3. Production
+
+        // 2. Check construction timers
+        for islandIdx in 0..<gameState.islands.count {
+            for slotIdx in 0..<gameState.islands[islandIdx].buildings.count {
+                if let building = gameState.islands[islandIdx].buildings[slotIdx],
+                   building.constructionStartTime != nil && !building.isUnderConstruction {
+                    // Timer expired -- complete construction
+                    gameState.islands[islandIdx].buildings[slotIdx]?.completeConstruction()
+                    gameState.statistics.totalBuildingsConstructed += 1
+                }
+            }
+        }
+
+        // 3. Check research timer
+        if let research = gameState.activeResearch, research.isComplete {
+            let researchId = research.researchId
+            gameState.activeResearch = nil
+            gameState.completedResearches.append(CompletedResearch(researchId: researchId))
+            gameState.statistics.totalResearchCompleted += 1
+
+            // Check epoch advancement
+            let completedIds = gameState.completedResearches.map { $0.researchId }
+            if gameState.epochTracker.canAdvanceEpoch(completedResearchIds: completedIds) {
+                gameState.epochTracker.advanceEpoch()
+            }
+        }
+
+        // 4. Passive gold income (building gold handled in ProductionManager)
+        let bonuses = ResearchEffectResolver.resolve(completedResearches: gameState.completedResearches)
+        let baseGold = 1 + bonuses.extraGoldPerTick
+        let totalPassiveGold = Int(Double(baseGold) * bonuses.goldIncomeMultiplier)
+        gameState.gold += totalPassiveGold
+
+        // 5. Production
         productionManager.processTick(gameState: &gameState)
-        
-        // 4. Auto-save every 30 ticks
+
+        // 6. Update statistics
+        gameState.statistics.totalTicksPlayed += 1
+        gameState.statistics.totalGoldEarned += totalPassiveGold
+        let totalPop = gameState.islands.reduce(0) { $0 + $1.workersAvailable(extraPerHousing: bonuses.extraWorkersPerHousing, housingBonusPercent: bonuses.housingCapacityBonusPercent) }
+        gameState.statistics.highestPopulation = max(gameState.statistics.highestPopulation, totalPop)
+
+        // 7. Check achievements every 10 ticks
+        if gameState.tick % 10 == 0 {
+            let newAchievements = AchievementManager.checkAchievements(gameState: gameState)
+            for achievementId in newAchievements {
+                gameState.completedAchievements.insert(achievementId)
+                if let def = AchievementCatalog.all.first(where: { $0.id == achievementId }) {
+                    awardGems(def.gemReward, source: "achievement_\(achievementId)")
+                }
+                HapticManager.success()
+            }
+        }
+
+        // 8. Auto-save every 10 ticks
         if gameState.tick % 10 == 0 {
             saveGame()
         }
-        
-        // 5. Trigger UI update
+
+        // 9. Trigger UI update
         objectWillChange.send()
     }
     
     // MARK: - Research Actions
 
     func completeResearch(_ researchId: String) -> Result<Void, ResearchError> {
-        // Check if already completed
-        if gameState.hasCompletedResearch(researchId) {
-            return .failure(.alreadyCompleted)
+        // Check if research already active
+        guard gameState.activeResearch == nil else {
+            return .failure(.researchAlreadyActive)
         }
 
-        // Get research type
+        // Find the research
         guard let research = ResearchType.all.first(where: { $0.id == researchId }) else {
             return .failure(.researchNotFound)
         }
 
-        // Check if we can afford it (from main island)
-        guard let islandIndex = gameState.islands.indices.first else {
-            return .failure(.noIsland)
+        // Check if already completed
+        let completedIds = gameState.completedResearches.map { $0.researchId }
+        guard !completedIds.contains(researchId) else {
+            return .failure(.alreadyCompleted)
         }
 
-        // Verify resources
+        // Check epoch requirement
+        guard gameState.epochTracker.currentEpoch >= research.requiredEpoch else {
+            return .failure(.epochRequirementNotMet)
+        }
+
+        // Check prerequisites
+        for prereq in research.prerequisiteIds {
+            if !completedIds.contains(prereq) {
+                return .failure(.prerequisiteNotMet)
+            }
+        }
+
+        // Check costs (from main island)
         for (resource, amount) in research.cost {
-            if !gameState.islands[islandIndex].inventory.has(resource, amount: amount) {
+            guard (gameState.islands.first?.inventory[resource] ?? 0) >= amount else {
                 return .failure(.insufficientResources)
             }
         }
 
-        // Deduct resources
+        // Deduct costs
         for (resource, amount) in research.cost {
-            gameState.islands[islandIndex].inventory.remove(resource, amount: amount)
+            gameState.islands[0].inventory.remove(resource, amount: amount)
         }
 
-        // Complete the research
-        let completedResearch = CompletedResearch(researchId: researchId)
-        gameState.completedResearches.append(completedResearch)
+        // Start research timer (apply research speed bonus)
+        let researchBonuses = ResearchEffectResolver.resolve(completedResearches: gameState.completedResearches)
+        let adjustedDuration = research.researchTime * researchBonuses.researchTimeMultiplier
+        gameState.activeResearch = ActiveResearch(
+            researchId: researchId,
+            startTime: Date(),
+            duration: adjustedDuration
+        )
 
+        objectWillChange.send()
         return .success(())
     }
 
@@ -135,14 +201,16 @@ final class GameViewModel: ObservableObject {
             return .failure(.buildingNotFound)
         }
 
-        return buildingManager.build(
+        let result = buildingManager.build(
             type,
             onIslandIndex: index,
             atSlotIndex: slotIndex,
             gameState: &gameState
         )
+        if case .success = result { HapticManager.success() }
+        return result
     }
-    
+
     func demolishBuilding(
         _ buildingId: UUID,
         fromIslandIndex index: Int
@@ -156,6 +224,102 @@ final class GameViewModel: ObservableObject {
             fromIslandIndex: index,
             gameState: &gameState
         )
+    }
+
+    func upgradeBuilding(buildingId: UUID, on islandIndex: Int) -> Result<Void, BuildError> {
+        // Find the building to calculate its max level
+        guard islandIndex < gameState.islands.count,
+              let building = gameState.islands[islandIndex].buildings.first(where: { $0?.id == buildingId }) ?? nil else {
+            return .failure(.buildingNotFound)
+        }
+        let maxLevel = maxLevelForBuilding(building)
+        let result = buildingManager.upgrade(buildingId: buildingId, on: islandIndex, maxLevel: maxLevel, in: &gameState)
+        if case .success = result { HapticManager.success() }
+        objectWillChange.send()
+        return result
+    }
+
+    /// Calculate the maximum level a building can reach based on epoch and tier research
+    func maxLevelForBuilding(_ building: Building) -> Int {
+        // Epoch-based cap: (currentEpoch - buildingEpoch + 1) * 10
+        let epochCap = (gameState.epochTracker.currentEpoch - building.type.availableFromEpoch + 1) * 10
+
+        // Tier research cap: starts at 10 (base), increases by 10 per completed tier research
+        let tierResearchIds = [
+            "e1_shelter", "e2_settlement_walls", "e3_fortification", "e4_ore_refinement",
+            "e5_metalworking_tiers", "e6_colonial_mastery", "e7_blast_furnace",
+            "e8_mass_production", "e9_logistics_mastery", "e10_master_builders"
+        ]
+        var tierCap = 10 // Base: levels 1-10 always available
+        for researchId in tierResearchIds {
+            if completedResearchIds.contains(researchId) {
+                tierCap += 10
+            } else {
+                break // Must be sequential
+            }
+        }
+
+        return min(epochCap, min(tierCap, 100))
+    }
+
+    // MARK: - Speed Up & Gems
+
+    func speedUpConstruction(buildingId: UUID, on islandIndex: Int) -> (cost: Int, success: Bool) {
+        let cost = buildingManager.speedUpConstruction(buildingId: buildingId, on: islandIndex, in: &gameState)
+        objectWillChange.send()
+        return (cost, cost == 0 || gameState.gems >= 0) // Already deducted if successful
+    }
+
+    func speedUpResearch() -> (cost: Int, success: Bool) {
+        guard let research = gameState.activeResearch else { return (0, false) }
+        let remaining = research.timeRemaining
+        if remaining <= 30 {
+            // Free complete
+            let researchId = research.researchId
+            gameState.activeResearch = nil
+            gameState.completedResearches.append(CompletedResearch(researchId: researchId))
+            let completedIds = gameState.completedResearches.map { $0.researchId }
+            if gameState.epochTracker.canAdvanceEpoch(completedResearchIds: completedIds) {
+                gameState.epochTracker.advanceEpoch()
+            }
+            gameState.statistics.totalResearchCompleted += 1
+            objectWillChange.send()
+            return (0, true)
+        }
+        let gemCost = max(1, Int(ceil(remaining / 60.0)))
+        guard gameState.gems >= gemCost else { return (gemCost, false) }
+        gameState.gems -= gemCost
+        gameState.statistics.totalGemsSpent += gemCost
+        // Complete research
+        let researchId = research.researchId
+        gameState.activeResearch = nil
+        gameState.completedResearches.append(CompletedResearch(researchId: researchId))
+        let completedIds = gameState.completedResearches.map { $0.researchId }
+        if gameState.epochTracker.canAdvanceEpoch(completedResearchIds: completedIds) {
+            gameState.epochTracker.advanceEpoch()
+        }
+        gameState.statistics.totalResearchCompleted += 1
+        objectWillChange.send()
+        return (gemCost, true)
+    }
+
+    func awardGems(_ amount: Int, source: String = "") {
+        gameState.gems += amount
+        gameState.statistics.totalGemsEarned += amount
+        objectWillChange.send()
+    }
+
+    // MARK: - Storage
+
+    func upgradeStorage(on islandIndex: Int, category: ResourceCategory) -> Bool {
+        guard islandIndex >= 0 && islandIndex < gameState.islands.count else { return false }
+        let cost = gameState.islands[islandIndex].storageUpgradeCost(category: category)
+        guard gameState.gold >= cost else { return false }
+        gameState.gold -= cost
+        gameState.statistics.totalGoldSpent += cost
+        gameState.islands[islandIndex].upgradeStorage(category: category)
+        objectWillChange.send()
+        return true
     }
 
     // MARK: - Worker Assignment
@@ -231,7 +395,8 @@ final class GameViewModel: ObservableObject {
             return 0.0
         }
 
-        return ProductivityCalculator.calculateProductivity(for: actualBuilding, gameState: gameState)
+        let island = gameState.islands[islandIndex]
+        return ProductivityCalculator.calculateProductivity(for: actualBuilding, island: island, gameState: gameState)
     }
     
     // MARK: - Save/Load
@@ -296,6 +461,46 @@ final class GameViewModel: ObservableObject {
     func actualConsumptionRate() -> Inventory {
         productionManager.actualConsumptionRate(gameState: gameState)
     }
+
+    // MARK: - Progression Helpers
+
+    /// Get completed research IDs
+    var completedResearchIds: [String] {
+        gameState.completedResearches.map { $0.researchId }
+    }
+
+    /// Check if island is unlocked
+    func isIslandUnlocked(_ island: Island) -> Bool {
+        island.isUnlocked(completedResearch: gameState.completedResearches)
+    }
+
+    /// Check if research can be started
+    func canStartResearch(_ research: ResearchType) -> Bool {
+        // Not already completed
+        guard !completedResearchIds.contains(research.id) else { return false }
+        // Epoch requirement met
+        guard gameState.epochTracker.currentEpoch >= research.requiredEpoch else { return false }
+        // Prerequisites met
+        for prereq in research.prerequisiteIds {
+            guard completedResearchIds.contains(prereq) else { return false }
+        }
+        return true
+    }
+
+    /// Current epoch name
+    var currentEpochName: String {
+        gameState.epochTracker.currentEpochStruct().name
+    }
+
+    /// Current epoch description
+    var currentEpochDescription: String {
+        gameState.epochTracker.currentEpochStruct().description
+    }
+
+    /// Current epoch number
+    var currentEpoch: Int {
+        gameState.epochTracker.currentEpoch
+    }
 }
 
 // MARK: - Research Errors
@@ -305,6 +510,9 @@ enum ResearchError: Error, LocalizedError {
     case alreadyCompleted
     case insufficientResources
     case noIsland
+    case researchAlreadyActive
+    case epochRequirementNotMet
+    case prerequisiteNotMet
 
     var errorDescription: String? {
         switch self {
@@ -316,6 +524,12 @@ enum ResearchError: Error, LocalizedError {
             return "Insufficient resources"
         case .noIsland:
             return "No island available"
+        case .researchAlreadyActive:
+            return "Another research is already in progress"
+        case .epochRequirementNotMet:
+            return "Epoch requirement not met"
+        case .prerequisiteNotMet:
+            return "Prerequisite research not completed"
         }
     }
 }

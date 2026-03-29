@@ -8,45 +8,23 @@
 import SwiftUI
 
 // ─────────────────────────────────────────────────────────────────
-// 1️⃣ Define BuildingSlotData for display
-// ─────────────────────────────────────────────────────────────────
-struct BuildingSlotData: Identifiable {
-    let id: Int  // Slot index
-    let building: Building?
-    let position: CGPoint
-}
-
-// ─────────────────────────────────────────────────────────────────
-// 2️⃣ The IslandMapView itself
+// IslandMapView — Dynamic grid layout with epoch + hunger display
 // ─────────────────────────────────────────────────────────────────
 struct IslandMapView: View {
-    // Injected state from your GameViewModel
+    // Injected state
     let gold: Int
-    let wheat: Int
-    let workers: Int
-    let knowledge: Int
-    let buildings: [Building?]
-    let onSlotTap: (Int) -> Void  // Passes slot index
+    let island: Island
+    let epochNumber: Int
+    let epochName: String
+    let epochDescription: String
+    let onSlotTap: (Int) -> Void
 
-    // Fixed spot positions (matching array indices)
-    private let positions: [CGPoint] = [
-        CGPoint(x: 0.25, y: 0.30),  // Slot 0
-        CGPoint(x: 0.50, y: 0.30),  // Slot 1
-        CGPoint(x: 0.75, y: 0.30),  // Slot 2
-        CGPoint(x: 0.25, y: 0.50),  // Slot 3
-        CGPoint(x: 0.50, y: 0.50),  // Slot 4
-        CGPoint(x: 0.75, y: 0.50),  // Slot 5
-    ]
+    private var buildings: [Building?] { island.buildings }
 
-    // Map buildings to slots with positions
-    private var slots: [BuildingSlotData] {
-        buildings.enumerated().map { index, building in
-            BuildingSlotData(
-                id: index,
-                building: building,
-                position: index < positions.count ? positions[index] : CGPoint(x: 0.5, y: 0.8)
-            )
-        }
+    private func formatTime(_ seconds: TimeInterval) -> String {
+        let mins = Int(seconds) / 60
+        let secs = Int(seconds) % 60
+        return String(format: "%d:%02d", mins, secs)
     }
 
     var body: some View {
@@ -55,88 +33,167 @@ struct IslandMapView: View {
             Color.blue.opacity(0.1)
                 .edgesIgnoringSafeArea(.all)
 
-            // Building spots
-            GeometryReader { geo in
-                ForEach(slots) { slot in
-                    Button {
-                        onSlotTap(slot.id)
-                    } label: {
-                        if let building = slot.building {
-                            // Occupied slot - show building
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.blue.opacity(0.3))
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.blue, lineWidth: 2)
-                                Image(systemName: building.type.icon)
-                                    .font(.title)
-                                    .foregroundColor(.white)
+            VStack(spacing: 12) {
+                // Epoch display
+                VStack(spacing: 2) {
+                    Text("Epoch \(epochNumber): \(epochName)")
+                        .font(.headline)
+                    Text(epochDescription)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top, 8)
+
+                // Resource bar
+                resourceBar
+
+                // Food status indicator
+                if island.isHungry {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.red)
+                        Text("Workers are hungry! Production halved.")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+                    .padding(.horizontal)
+                }
+
+                // Dynamic building grid
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
+                    ForEach(0..<buildings.count, id: \.self) { index in
+                        Button {
+                            onSlotTap(index)
+                        } label: {
+                            if let building = buildings[index] {
+                                // Occupied slot - show building
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(building.isUnderConstruction ? Color.orange.opacity(0.3) : Color.blue.opacity(0.3))
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(building.isUnderConstruction ? Color.orange : Color.blue, lineWidth: 2)
+                                    VStack(spacing: 4) {
+                                        if building.isUnderConstruction {
+                                            Image(systemName: "hammer.fill")
+                                                .font(.title)
+                                                .foregroundColor(.orange)
+                                            ProgressView(value: building.constructionProgress)
+                                                .progressViewStyle(.circular)
+                                                .scaleEffect(0.7)
+                                            Text(formatTime(building.constructionTimeRemaining))
+                                                .font(.caption2.monospacedDigit())
+                                                .foregroundColor(.orange)
+                                        } else {
+                                            Image(systemName: building.type.icon)
+                                                .font(.title)
+                                                .foregroundColor(.white)
+                                            let tierNum = BuildingTierCatalog.tierNumber(for: building.level)
+                                            let tierInfo = BuildingTierCatalog.tier(for: building.type.id, tierNumber: tierNum)
+                                            Text(tierInfo.name)
+                                                .font(.caption2)
+                                                .foregroundColor(.white)
+                                                .lineLimit(1)
+                                        }
+                                    }
+                                }
+                                .frame(height: 70)
+                            } else {
+                                // Empty slot
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.gray.opacity(0.5), lineWidth: 2)
+                                        .background(Color.clear)
+                                    Image(systemName: "plus")
+                                        .font(.title2)
+                                        .foregroundColor(.gray.opacity(0.5))
+                                }
+                                .frame(height: 70)
                             }
-                            .frame(width: 60, height: 60)
-                        } else {
-                            // Empty slot
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.gray.opacity(0.5), lineWidth: 2)
-                                    .background(Color.clear)
-                                Image(systemName: "plus")
-                                    .font(.title2)
-                                    .foregroundColor(.gray.opacity(0.5))
-                            }
-                            .frame(width: 60, height: 60)
                         }
                     }
-                    .position(
-                        x: geo.size.width  * slot.position.x,
-                        y: geo.size.height * slot.position.y
-                    )
-                }
-            }
-
-            // Top resource bar
-            VStack {
-                HStack {
-                    Spacer()
-                    HStack(spacing: 16) {
-                        Label("\(gold)", systemImage: "dollarsign.circle")
-                        Label("\(wheat)", systemImage: "leaf.fill")
-                        Label("\(knowledge)", systemImage: "lightbulb.fill")
-                        Label("\(workers)", systemImage: "person.3.sequence")
-                            .foregroundColor(workers < 10 ? .primary : .red)
-                    }
-                    .font(.headline)
-                    .padding(8)
-                    .background(Color.white.opacity(0.8))
-                    .cornerRadius(8)
                 }
                 .padding()
+
                 Spacer()
             }
+        }
+    }
+
+    // MARK: - Resource Bar
+
+    private var resourceBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                // Gold always shown
+                Label("\(gold)", systemImage: "dollarsign.circle")
+
+                // Workers always shown
+                Label("\(island.unassignedWorkers)/\(island.workersAvailable)", systemImage: "person.3.sequence")
+                    .foregroundColor(island.unassignedWorkers == 0 && island.workersAvailable > 0 ? .red : .primary)
+
+                // Dynamic resources: show all with amount > 0
+                ForEach(resourcesWithStock, id: \.0) { resource, amount in
+                    let cap = island.storageCapForCategory(resource.category)
+                    Label("\(amount)/\(cap)", systemImage: resource.icon)
+                        .foregroundColor(amount >= cap ? .red : (Double(amount) >= Double(cap) * 0.8 ? .orange : resourceColor(for: resource)))
+                }
+            }
+            .font(.headline)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color(.systemBackground).opacity(0.9))
+            .cornerRadius(8)
+        }
+        .padding(.horizontal)
+    }
+
+    /// Resources that have stock > 0, sorted by category then name
+    private var resourcesWithStock: [(ResourceType, Int)] {
+        island.inventory
+            .filter { $0.value > 0 }
+            .sorted { lhs, rhs in
+                if lhs.key.category != rhs.key.category {
+                    return lhs.key.category.rawValue < rhs.key.category.rawValue
+                }
+                return lhs.key.displayName < rhs.key.displayName
+            }
+            .map { ($0.key, $0.value) }
+    }
+
+    private func resourceColor(for resource: ResourceType) -> Color {
+        switch resource.category {
+        case .food: return .green
+        case .material: return .brown
+        case .ore: return .gray
+        case .knowledge: return .purple
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────
-// 3️⃣ Preview to verify build
+// Preview
 // ─────────────────────────────────────────────────────────────────
 struct IslandMapView_Previews: PreviewProvider {
     static var previews: some View {
+        let island = {
+            var i = Island(name: "Main Isle", maxSlots: 8, fertilities: [.grainland, .forest])
+            i.buildings[0] = Building(type: .tent)
+            i.buildings[1] = Building(type: .farm)
+            i.buildings[3] = Building(type: .forester)
+            i.inventory = [.wheat: 25, .wood: 40, .bread: 10, .insight: 5]
+            return i
+        }()
+
         IslandMapView(
             gold: 500,
-            wheat: 45,
-            workers: 8,
-            knowledge: 12,
-            buildings: [
-                Building(type: .tent),
-                Building(type: .farm),
-                nil,
-                Building(type: .forester),
-                nil,
-                Building(type: .mine)
-            ]
-        ) { slotIndex in
-            print("Tapped slot:", slotIndex)
-        }
+            island: island,
+            epochNumber: 2,
+            epochName: "Settlement",
+            epochDescription: "With agriculture comes permanence.",
+            onSlotTap: { slotIndex in
+                print("Tapped slot:", slotIndex)
+            }
+        )
         .frame(width: 375, height: 667)
     }
 }

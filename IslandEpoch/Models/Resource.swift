@@ -27,7 +27,7 @@ enum ResourceCategory: String, Codable, CaseIterable, Hashable {
         case .food: return "basket.fill"
         case .material: return "tree.fill"
         case .ore: return "cube.box.fill"
-        case .knowledge: return "brain.head.profile"
+        case .knowledge: return "lightbulb"
         }
     }
 }
@@ -40,6 +40,12 @@ enum ResourceType: String, Codable, CaseIterable {
     case bread
     case berries
     case insight
+    case stone
+    case planks
+    case ironBars
+    case tools
+    case herbs
+    case coal
 
     var displayName: String {
         switch self {
@@ -49,6 +55,12 @@ enum ResourceType: String, Codable, CaseIterable {
         case .bread: return "Bread"
         case .berries: return "Berries"
         case .insight: return "Insight"
+        case .stone: return "Stone"
+        case .planks: return "Planks"
+        case .ironBars: return "Iron Bars"
+        case .tools: return "Tools"
+        case .herbs: return "Herbs"
+        case .coal: return "Coal"
         }
     }
 
@@ -65,6 +77,12 @@ enum ResourceType: String, Codable, CaseIterable {
         case .bread: return "basket.fill"
         case .berries: return "leaf.circle.fill"
         case .insight: return "lightbulb.fill"
+        case .stone: return "square.stack.3d.up"
+        case .planks: return "rectangle.split.3x1"
+        case .ironBars: return "rectangle.stack"
+        case .tools: return "wrench"
+        case .herbs: return "leaf.arrow.circlepath"
+        case .coal: return "flame.fill"
         }
     }
 
@@ -72,12 +90,14 @@ enum ResourceType: String, Codable, CaseIterable {
         switch self {
         case .bread, .berries:
             return .food
-        case .wood:
+        case .wood, .planks, .tools, .herbs:
             return .material
-        case .ironOre:
+        case .ironOre, .ironBars, .coal:
             return .ore
         case .wheat:
             return .material // Wheat is a raw material for bread
+        case .stone:
+            return .material
         case .insight:
             return .knowledge
         }

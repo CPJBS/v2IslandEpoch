@@ -15,6 +15,12 @@ struct BuildingDetailView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
 
+    private func formatTime(_ seconds: TimeInterval) -> String {
+        let mins = Int(seconds) / 60
+        let secs = Int(seconds) % 60
+        return String(format: "%d:%02d", mins, secs)
+    }
+
     var refundAmount: Int {
         building.type.goldCost / 2
     }
@@ -43,25 +49,83 @@ struct BuildingDetailView: View {
 
     var body: some View {
         NavigationStack {
+            if currentBuilding.isUnderConstruction {
+                VStack(spacing: 16) {
+                    Spacer()
+
+                    Text("Under Construction")
+                        .font(.headline)
+                        .foregroundColor(.orange)
+
+                    ProgressView(value: currentBuilding.constructionProgress)
+                        .progressViewStyle(.linear)
+                        .padding(.horizontal, 40)
+
+                    Text(formatTime(currentBuilding.constructionTimeRemaining))
+                        .font(.title2.monospacedDigit())
+
+                    // Speed up button
+                    let remaining = currentBuilding.constructionTimeRemaining
+                    if remaining <= 30 {
+                        Button("Finish Now (Free)") {
+                            let _ = vm.speedUpConstruction(buildingId: currentBuilding.id, on: islandIndex)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.green)
+                    } else {
+                        let gemCost = max(1, Int(ceil(remaining / 60.0)))
+                        Button("Speed Up (\(gemCost) \u{1F48E})") {
+                            let _ = vm.speedUpConstruction(buildingId: currentBuilding.id, on: islandIndex)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.cyan)
+                        .disabled(vm.gameState.gems < gemCost)
+                    }
+
+                    Spacer()
+                }
+                .padding()
+                .navigationTitle(currentBuilding.type.name)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close") {
+                            dismiss()
+                        }
+                    }
+                }
+            } else {
             List {
                 // Building Info Section
                 Section("Building Information") {
                     HStack {
-                        Image(systemName: building.type.icon)
+                        Image(systemName: currentBuilding.type.icon)
                             .font(.largeTitle)
                             .foregroundColor(.blue)
                             .frame(width: 60)
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(building.type.name)
+                            let tierNum = BuildingTierCatalog.tierNumber(for: currentBuilding.level)
+                            let tierInfo = BuildingTierCatalog.tier(for: currentBuilding.type.id, tierNumber: tierNum)
+                            let levelInTier = BuildingTierCatalog.levelWithinTier(for: currentBuilding.level)
+                            Text("\(tierInfo.name) (\(levelInTier)/10)")
                                 .font(.title2)
                                 .bold()
-                            Text("Level \(building.level)")
-                                .font(.subheadline)
+                            Text(tierInfo.flavorText)
+                                .font(.caption)
                                 .foregroundColor(.secondary)
+                                .italic()
                         }
                     }
                     .padding(.vertical, 8)
+
+                    if currentBuilding.type.goldProduction > 0 {
+                        HStack {
+                            Image(systemName: "dollarsign.circle")
+                                .foregroundColor(.yellow)
+                            Text("+\(currentBuilding.type.goldProduction) gold/tick")
+                        }
+                    }
                 }
 
                 // Worker Assignment Section (for production buildings)
@@ -241,21 +305,40 @@ struct BuildingDetailView: View {
 
                 // Actions Section
                 Section("Actions") {
-                    // Upgrade Button (Stub)
-                    Button {
-                        alertMessage = "Upgrade feature coming soon!"
-                        showAlert = true
-                    } label: {
+                    // Upgrade Button
+                    if currentBuilding.level < vm.maxLevelForBuilding(currentBuilding) {
+                        let upgradeCost = BuildingManager.upgradeCost(for: currentBuilding)
+                        Button {
+                            let result = vm.upgradeBuilding(buildingId: building.id, on: islandIndex)
+                            switch result {
+                            case .success:
+                                alertMessage = "Building upgraded successfully!"
+                                showAlert = true
+                            case .failure(let error):
+                                alertMessage = error.localizedDescription
+                                showAlert = true
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.up.circle.fill")
+                                let nextTierNum = BuildingTierCatalog.tierNumber(for: currentBuilding.level + 1)
+                                let nextTierInfo = BuildingTierCatalog.tier(for: currentBuilding.type.id, tierNumber: nextTierNum)
+                                let nextLevelInTier = BuildingTierCatalog.levelWithinTier(for: currentBuilding.level + 1)
+                                Text("Upgrade to \(nextTierInfo.name) (\(nextLevelInTier)/10)")
+                                Spacer()
+                                Text("\(upgradeCost) gold")
+                                    .foregroundColor(vm.gameState.gold >= upgradeCost ? .primary : .red)
+                            }
+                        }
+                        .disabled(vm.gameState.gold < upgradeCost)
+                    } else {
                         HStack {
                             Image(systemName: "arrow.up.circle.fill")
-                            Text("Upgrade Building")
-                            Spacer()
-                            Text("Coming Soon")
-                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("Max Level (\(vm.maxLevelForBuilding(currentBuilding)))")
                                 .foregroundColor(.secondary)
                         }
                     }
-                    .disabled(true)
 
                     // Demolish Button
                     Button(role: .destructive) {
@@ -290,6 +373,7 @@ struct BuildingDetailView: View {
             } message: {
                 Text(alertMessage)
             }
+            } // end else (not under construction)
         }
     }
 
