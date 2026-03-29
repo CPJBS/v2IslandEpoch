@@ -27,6 +27,14 @@ struct IslandMapView: View {
         [3, 6].contains(tutorialStep)
     }
 
+    /// Whether a specific occupied building slot should be highlighted
+    private func shouldHighlightBuilding(_ building: Building) -> Bool {
+        if tutorialStep == 4 {
+            return building.type.id == "forager" && !building.isUnderConstruction
+        }
+        return false
+    }
+
     private func formatTime(_ seconds: TimeInterval) -> String {
         let mins = Int(seconds) / 60
         let secs = Int(seconds) % 60
@@ -73,11 +81,17 @@ struct IslandMapView: View {
                         } label: {
                             if let building = buildings[index] {
                                 // Occupied slot - show building
+                                let highlighted = shouldHighlightBuilding(building)
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 8)
-                                        .fill(building.isUnderConstruction ? Color.orange.opacity(0.3) : Color.blue.opacity(0.3))
+                                        .fill(building.isUnderConstruction ? Color.orange.opacity(0.3) : (highlighted ? Color.yellow.opacity(0.15) : Color.blue.opacity(0.3)))
                                     RoundedRectangle(cornerRadius: 8)
-                                        .stroke(building.isUnderConstruction ? Color.orange : Color.blue, lineWidth: 2)
+                                        .stroke(highlighted ? Color.yellow : (building.isUnderConstruction ? Color.orange : Color.blue), lineWidth: highlighted ? 3 : 2)
+                                    if highlighted {
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(Color.yellow, lineWidth: 2)
+                                            .shadow(color: .yellow, radius: 6)
+                                    }
                                     VStack(spacing: 4) {
                                         if building.isUnderConstruction {
                                             Image(systemName: "hammer.fill")

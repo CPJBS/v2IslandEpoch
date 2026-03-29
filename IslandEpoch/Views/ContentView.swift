@@ -12,23 +12,27 @@ struct ContentView: View {
     @State private var showWelcomeBack = false
     @State private var offlineReport: OfflineReport?
     @State private var showDailyLogin = false
+    @State private var selectedTab: Int = 0
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             IslandTabView()
                 .tabItem {
                     Label("Island", systemImage: "map")
                 }
+                .tag(0)
 
             BuildingListView()
                 .tabItem {
                     Label("Buildings", systemImage: "building.2")
                 }
+                .tag(1)
 
             ResearchView()
                 .tabItem {
                     Label("Research", systemImage: "flask")
                 }
+                .tag(2)
 
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape") }
@@ -74,6 +78,14 @@ struct ContentView: View {
         .overlay {
             if vm.gameState.tutorialStep > 0 {
                 TutorialOverlayView(tutorialStep: $vm.gameState.tutorialStep).environmentObject(vm)
+            }
+        }
+        .onChange(of: vm.gameState.tutorialStep) { _, newStep in
+            // Auto-switch to Research tab for step 7, back to Island for other steps
+            if newStep == 7 {
+                selectedTab = 2
+            } else if newStep > 0 && newStep != 7 {
+                selectedTab = 0
             }
         }
         .onChange(of: scenePhase) { _, newPhase in

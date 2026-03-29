@@ -80,6 +80,10 @@ final class GameViewModel: ObservableObject {
                     // Timer expired -- complete construction
                     gameState.islands[islandIdx].buildings[slotIdx]?.completeConstruction()
                     gameState.statistics.totalBuildingsConstructed += 1
+                    // Tutorial: advance when construction completes
+                    if gameState.tutorialStep == 3 || gameState.tutorialStep == 6 {
+                        gameState.tutorialStep += 1
+                    }
                 }
             }
         }
@@ -186,6 +190,11 @@ final class GameViewModel: ObservableObject {
             duration: adjustedDuration
         )
 
+        // Tutorial: advance when first research started
+        if gameState.tutorialStep == 7 {
+            gameState.tutorialStep += 1
+        }
+
         objectWillChange.send()
         return .success(())
     }
@@ -209,10 +218,6 @@ final class GameViewModel: ObservableObject {
         )
         if case .success = result {
             HapticManager.success()
-            // Auto-advance tutorial on build action steps
-            if gameState.tutorialStep == 3 || gameState.tutorialStep == 6 {
-                gameState.tutorialStep += 1
-            }
         }
         return result
     }
@@ -266,6 +271,25 @@ final class GameViewModel: ObservableObject {
         }
 
         return min(epochCap, min(tierCap, 100))
+    }
+
+    // MARK: - Tutorial Helpers
+
+    /// Instantly complete all buildings under construction (free during tutorial)
+    func tutorialSkipConstruction() {
+        for islandIdx in 0..<gameState.islands.count {
+            for slotIdx in 0..<gameState.islands[islandIdx].buildings.count {
+                if let building = gameState.islands[islandIdx].buildings[slotIdx],
+                   building.isUnderConstruction {
+                    gameState.islands[islandIdx].buildings[slotIdx]?.completeConstruction()
+                    gameState.statistics.totalBuildingsConstructed += 1
+                }
+            }
+        }
+        if gameState.tutorialStep == 3 || gameState.tutorialStep == 6 {
+            gameState.tutorialStep += 1
+        }
+        objectWillChange.send()
     }
 
     // MARK: - Speed Up & Gems
@@ -357,6 +381,11 @@ final class GameViewModel: ObservableObject {
         // Assign the worker
         building.assignedWorkers += 1
         gameState.islands[islandIndex].buildings[buildingIndex] = building
+
+        // Tutorial: advance when worker assigned to first building
+        if gameState.tutorialStep == 4 {
+            gameState.tutorialStep += 1
+        }
 
         return .success(())
     }
