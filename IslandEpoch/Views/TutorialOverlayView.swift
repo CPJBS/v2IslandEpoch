@@ -12,8 +12,10 @@ struct TutorialOverlayView: View {
     var body: some View {
         ZStack {
             // Semi-transparent background — lighter during action steps so the map is visible
+            // During action steps, allow taps to pass through to the game
             Color.black.opacity(isActionStep ? 0.3 : 0.6)
                 .ignoresSafeArea()
+                .allowsHitTesting(!isActionStep)
 
             VStack(spacing: 20) {
                 Spacer()
@@ -51,6 +53,7 @@ struct TutorialOverlayView: View {
                 .background(.ultraThinMaterial)
                 .cornerRadius(16)
                 .padding(.horizontal, 32)
+                .allowsHitTesting(!isActionStep)
 
                 // Skip button
                 Button("Skip Tutorial") {
@@ -62,7 +65,6 @@ struct TutorialOverlayView: View {
                 .padding(.bottom, 40)
             }
         }
-        .allowsHitTesting(!isActionStep)
         .animation(.easeInOut, value: tutorialStep)
     }
 
