@@ -17,9 +17,15 @@ struct IslandMapView: View {
     let epochNumber: Int
     let epochName: String
     let epochDescription: String
+    let tutorialStep: Int
     let onSlotTap: (Int) -> Void
 
     private var buildings: [Building?] { island.buildings }
+
+    /// Whether empty slots should be highlighted for the current tutorial step
+    private var highlightEmptySlots: Bool {
+        [3, 6].contains(tutorialStep)
+    }
 
     private func formatTime(_ seconds: TimeInterval) -> String {
         let mins = Int(seconds) / 60
@@ -101,11 +107,16 @@ struct IslandMapView: View {
                                 // Empty slot
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray.opacity(0.5), lineWidth: 2)
-                                        .background(Color.clear)
+                                        .stroke(highlightEmptySlots ? Color.yellow : Color.gray.opacity(0.5), lineWidth: highlightEmptySlots ? 3 : 2)
+                                        .background(highlightEmptySlots ? Color.yellow.opacity(0.15) : Color.clear)
+                                    if highlightEmptySlots {
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(Color.yellow, lineWidth: 2)
+                                            .shadow(color: .yellow, radius: 6)
+                                    }
                                     Image(systemName: "plus")
                                         .font(.title2)
-                                        .foregroundColor(.gray.opacity(0.5))
+                                        .foregroundColor(highlightEmptySlots ? .yellow : .gray.opacity(0.5))
                                 }
                                 .frame(height: 70)
                             }
@@ -190,6 +201,7 @@ struct IslandMapView_Previews: PreviewProvider {
             epochNumber: 2,
             epochName: "Settlement",
             epochDescription: "With agriculture comes permanence.",
+            tutorialStep: -1,
             onSlotTap: { slotIndex in
                 print("Tapped slot:", slotIndex)
             }

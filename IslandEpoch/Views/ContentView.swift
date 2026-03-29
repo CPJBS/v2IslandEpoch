@@ -176,7 +176,8 @@ struct IslandTabView: View {
                         island: island,
                         epochNumber: vm.currentEpoch,
                         epochName: vm.currentEpochName,
-                        epochDescription: vm.currentEpochDescription
+                        epochDescription: vm.currentEpochDescription,
+                        tutorialStep: vm.gameState.tutorialStep
                     ) { slotIndex in
                         handleSlotTap(slotIndex)
                     }

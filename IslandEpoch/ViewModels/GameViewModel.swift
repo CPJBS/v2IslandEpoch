@@ -207,7 +207,13 @@ final class GameViewModel: ObservableObject {
             atSlotIndex: slotIndex,
             gameState: &gameState
         )
-        if case .success = result { HapticManager.success() }
+        if case .success = result {
+            HapticManager.success()
+            // Auto-advance tutorial on build action steps
+            if gameState.tutorialStep == 3 || gameState.tutorialStep == 6 {
+                gameState.tutorialStep += 1
+            }
+        }
         return result
     }
 

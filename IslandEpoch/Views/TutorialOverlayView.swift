@@ -11,8 +11,8 @@ struct TutorialOverlayView: View {
 
     var body: some View {
         ZStack {
-            // Semi-transparent background
-            Color.black.opacity(0.6)
+            // Semi-transparent background — lighter during action steps so the map is visible
+            Color.black.opacity(isActionStep ? 0.3 : 0.6)
                 .ignoresSafeArea()
 
             VStack(spacing: 20) {
@@ -62,6 +62,7 @@ struct TutorialOverlayView: View {
                 .padding(.bottom, 40)
             }
         }
+        .allowsHitTesting(!isActionStep)
         .animation(.easeInOut, value: tutorialStep)
     }
 
