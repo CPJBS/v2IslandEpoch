@@ -1,0 +1,13 @@
+# Xcode user data
+xcuserdata/
+*.xcuserdatad
+
+# JetBrains IDE
+.idea/
+
+# macOS
+.DS_Store
+
+# Build
+build/
+DerivedData/
