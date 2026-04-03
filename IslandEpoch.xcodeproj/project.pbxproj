@@ -16,6 +16,11 @@
 			path = IslandEpoch;
 			sourceTree = "<group>";
 		};
+		08009A502EBF3B9100E63750 /* docs */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = docs;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -33,6 +38,7 @@
 			isa = PBXGroup;
 			children = (
 				08009A312EBF3B9100E63750 /* IslandEpoch */,
+				08009A502EBF3B9100E63750 /* docs */,
 				08009A302EBF3B9100E63750 /* Products */,
 			);
 			sourceTree = "<group>";

@@ -32,6 +32,11 @@ struct DailyLoginView: View {
 
     /// The day index (1-7) the player is on within the weekly cycle.
     private var currentDay: Int {
+        // If streak is 0, we're on day 1 (first claim)
+        // Otherwise, calculate position in 7-day cycle
+        if streak == 0 {
+            return 1
+        }
         let dayInCycle = (streak % 7)
         return dayInCycle == 0 ? 7 : dayInCycle
     }
@@ -67,7 +72,7 @@ struct DailyLoginView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "flame.fill")
                             .foregroundStyle(.orange)
-                        Text("\(streak) day streak")
+                        Text("\(max(streak, 1)) day streak")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }

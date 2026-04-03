@@ -69,8 +69,23 @@ struct ContentView: View {
             DailyLoginView { gold, gems in
                 vm.gameState.gold += gold
                 vm.awardGems(gems, source: "daily_login")
+                
+                // Update streak logic
+                let calendar = Calendar.current
+                if let lastClaim = vm.gameState.dailyLogin.lastClaimDate {
+                    // Check if last claim was yesterday (continue streak) or earlier (reset to 1)
+                    if calendar.isDateInYesterday(lastClaim) {
+                        vm.gameState.dailyLogin.currentStreak += 1
+                    } else {
+                        // Missed one or more days, reset streak to 1
+                        vm.gameState.dailyLogin.currentStreak = 1
+                    }
+                } else {
+                    // First time claiming
+                    vm.gameState.dailyLogin.currentStreak = 1
+                }
+                
                 vm.gameState.dailyLogin.lastClaimDate = Date()
-                vm.gameState.dailyLogin.currentStreak += 1
                 vm.gameState.dailyLogin.totalDaysClaimed += 1
                 showDailyLogin = false
             }.environmentObject(vm)
@@ -117,11 +132,19 @@ struct ContentView: View {
                 vm.gameState.tutorialStep = 1
             }
             // Check daily login
+            let calendar = Calendar.current
             if let lastClaim = vm.gameState.dailyLogin.lastClaimDate {
-                if !Calendar.current.isDateInToday(lastClaim) {
+                // Show dialog if not claimed today
+                if !calendar.isDateInToday(lastClaim) {
+                    // If last claim was not yesterday, reset streak (but don't claim yet)
+                    if !calendar.isDateInYesterday(lastClaim) {
+                        vm.gameState.dailyLogin.currentStreak = 0
+                    }
                     showDailyLogin = true
                 }
             } else {
+                // First time - initialize streak to 0 (will become 1 on first claim)
+                vm.gameState.dailyLogin.currentStreak = 0
                 showDailyLogin = true
             }
         }
