@@ -12,6 +12,10 @@ struct BuildingListView: View {
     @State private var selectedSlotIndex: Int?
     @State private var showBuildMenu = false
 
+    private func fmt(_ value: Int) -> String {
+        GameNumberFormatter.format(value, compact: vm.gameState.settings.compactNumbers)
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -36,8 +40,16 @@ struct BuildingListView: View {
                                 .foregroundColor(.yellow)
                             Text("Gold")
                             Spacer()
-                            Text("\(vm.gameState.gold)")
-                                .bold()
+                            HStack(spacing: 4) {
+                                Text(fmt(vm.gameState.gold))
+                                    .bold()
+                                let income = vm.gameState.totalGoldIncome
+                                if income > 0 {
+                                    Text("+\(fmt(income))/s")
+                                        .font(.caption)
+                                        .foregroundColor(.yellow)
+                                }
+                            }
                         }
 
                         if let island = vm.currentIsland {
@@ -60,7 +72,7 @@ struct BuildingListView: View {
                                         Spacer()
                                         VStack(alignment: .trailing, spacing: 2) {
                                             let cap = island.storageCapForCategory(category)
-                                            Text("\(categoryTotal)/\(cap)")
+                                            Text("\(fmt(categoryTotal))/\(fmt(cap))")
                                                 .bold()
                                                 .foregroundColor(categoryTotal >= cap ? .red : (Double(categoryTotal) >= Double(cap) * 0.8 ? .orange : .primary))
                                         }
@@ -77,7 +89,7 @@ struct BuildingListView: View {
                                                         .foregroundColor(.secondary)
                                                     Spacer()
                                                     VStack(alignment: .trailing, spacing: 2) {
-                                                        Text("\(amount)")
+                                                        Text(fmt(amount))
                                                             .font(.caption)
                                                             .foregroundColor(.secondary)
                                                         resourceRateTicker(for: resource)

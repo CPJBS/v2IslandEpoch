@@ -39,8 +39,24 @@ struct SettingsView: View {
                 // MARK: - Info
                 Section("Info") {
                     NavigationLink("Statistics") { StatisticsView() }
-                    // AchievementsView not yet implemented
-                    // NavigationLink("Achievements") { AchievementsView() }
+                    NavigationLink("Achievements") { AchievementsView().environmentObject(vm) }
+                    NavigationLink {
+                        PrestigeView().environmentObject(vm)
+                    } label: {
+                        HStack {
+                            Text("Prestige")
+                            Spacer()
+                            if vm.gameState.prestige.totalStars > 0 {
+                                HStack(spacing: 2) {
+                                    Image(systemName: "star.fill")
+                                        .foregroundColor(.yellow)
+                                        .font(.caption)
+                                    Text("\(vm.gameState.prestige.totalStars)")
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // MARK: - Danger Zone

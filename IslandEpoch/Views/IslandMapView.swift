@@ -18,6 +18,9 @@ struct IslandMapView: View {
     let epochName: String
     let epochDescription: String
     let tutorialStep: Int
+    let goldIncome: Int
+    let netRates: [ResourceType: Int]
+    let compact: Bool
     let onSlotTap: (Int) -> Void
 
     private var buildings: [Building?] { island.buildings }
@@ -146,11 +149,23 @@ struct IslandMapView: View {
 
     // MARK: - Resource Bar
 
+    private func fmt(_ value: Int) -> String {
+        GameNumberFormatter.format(value, compact: compact)
+    }
+
     private var resourceBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
-                // Gold always shown
-                Label("\(gold)", systemImage: "dollarsign.circle")
+                // Gold always shown with income rate
+                HStack(spacing: 2) {
+                    Image(systemName: "dollarsign.circle")
+                    Text(fmt(gold))
+                    if goldIncome > 0 {
+                        Text("+\(fmt(goldIncome))/s")
+                            .font(.caption)
+                            .foregroundColor(.yellow)
+                    }
+                }
 
                 // Workers always shown
                 Label("\(island.unassignedWorkers)/\(island.workersAvailable)", systemImage: "person.3.sequence")
@@ -159,14 +174,27 @@ struct IslandMapView: View {
                 // Dynamic resources: show all with amount > 0
                 ForEach(resourcesWithStock, id: \.0) { resource, amount in
                     let cap = island.storageCapForCategory(resource.category)
-                    Label("\(amount)/\(cap)", systemImage: resource.icon)
-                        .foregroundColor(amount >= cap ? .red : (Double(amount) >= Double(cap) * 0.8 ? .orange : resourceColor(for: resource)))
+                    let rate = netRates[resource] ?? 0
+                    HStack(spacing: 2) {
+                        Image(systemName: resource.icon)
+                        Text("\(fmt(amount))/\(fmt(cap))")
+                        if rate != 0 {
+                            Text("\(rate > 0 ? "+" : "")\(rate)/s")
+                                .font(.caption)
+                                .foregroundColor(rate > 0 ? .green : .red)
+                        }
+                    }
+                    .foregroundColor(amount >= cap ? .red : (Double(amount) >= Double(cap) * 0.8 ? .orange : resourceColor(for: resource)))
                 }
             }
             .font(.headline)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
+            #if os(iOS) || os(visionOS)
             .background(Color(.systemBackground).opacity(0.9))
+            #else
+            .background(Color(nsColor: .windowBackgroundColor).opacity(0.9))
+            #endif
             .cornerRadius(8)
         }
         .padding(.horizontal)
@@ -216,6 +244,9 @@ struct IslandMapView_Previews: PreviewProvider {
             epochName: "Settlement",
             epochDescription: "With agriculture comes permanence.",
             tutorialStep: -1,
+            goldIncome: 3,
+            netRates: [.wheat: 2, .wood: 1],
+            compact: false,
             onSlotTap: { slotIndex in
                 print("Tapped slot:", slotIndex)
             }

@@ -33,6 +33,11 @@ struct ProductivityCalculator {
             productivity *= 0.5
         }
 
+        // 5. Prestige production bonus
+        if let gameState = gameState {
+            productivity *= gameState.prestige.productionMultiplier
+        }
+
         return productivity
     }
 

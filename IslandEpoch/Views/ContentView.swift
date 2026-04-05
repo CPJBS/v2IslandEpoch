@@ -157,6 +157,7 @@ struct IslandTabView: View {
     @State private var selectedBuilding: Building?
     @State private var selectedSlotIndex: Int?
     @State private var showBuildMenu = false
+    @StateObject private var resourceTracker = ResourceChangeTracker()
 
     var body: some View {
         NavigationStack {
@@ -206,15 +207,31 @@ struct IslandTabView: View {
 
                 // Island Map
                 if let island = vm.currentIsland {
-                    IslandMapView(
-                        gold: vm.gameState.gold,
-                        island: island,
-                        epochNumber: vm.currentEpoch,
-                        epochName: vm.currentEpochName,
-                        epochDescription: vm.currentEpochDescription,
-                        tutorialStep: vm.gameState.tutorialStep
-                    ) { slotIndex in
-                        handleSlotTap(slotIndex)
+                    ZStack(alignment: .top) {
+                        IslandMapView(
+                            gold: vm.gameState.gold,
+                            island: island,
+                            epochNumber: vm.currentEpoch,
+                            epochName: vm.currentEpochName,
+                            epochDescription: vm.currentEpochDescription,
+                            tutorialStep: vm.gameState.tutorialStep,
+                            goldIncome: vm.gameState.totalGoldIncome,
+                            netRates: vm.netResourceRates(),
+                            compact: vm.gameState.settings.compactNumbers
+                        ) { slotIndex in
+                            handleSlotTap(slotIndex)
+                        }
+
+                        // Floating resource change numbers
+                        FloatingNumberOverlay(numbers: resourceTracker.floatingNumbers)
+                            .allowsHitTesting(false)
+                            .padding(.top, 80)
+                    }
+                    .onChange(of: vm.gameState.tick) { _, _ in
+                        resourceTracker.update(
+                            gold: vm.gameState.gold,
+                            inventory: island.inventory
+                        )
                     }
                 }
             }

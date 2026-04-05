@@ -81,6 +81,7 @@ struct GameState: Codable {
     var dailyLogin: DailyLoginState = DailyLoginState()
     var completedAchievements: Set<String> = []
     var tutorialStep: Int = 0
+    var prestige: PrestigeState = PrestigeState()
 
     // MARK: - Computed Properties
     
@@ -93,8 +94,20 @@ struct GameState: Codable {
     }
     
     var totalGoldIncome: Int {
-        // Future: calculate from buildings
-        return 1
+        let bonuses = ResearchEffectResolver.resolve(completedResearches: completedResearches)
+        // Passive gold per tick
+        let basePassive = 1 + bonuses.extraGoldPerTick
+        let passiveGold = Int(Double(basePassive) * bonuses.goldIncomeMultiplier)
+        // Building gold per tick
+        var buildingGold = 0
+        for island in islands {
+            for building in island.buildings.compactMap({ $0 }) {
+                guard !building.isUnderConstruction, building.type.goldProduction > 0 else { continue }
+                let productivity = ProductivityCalculator.calculateProductivity(for: building, island: island, gameState: self)
+                buildingGold += Int(Double(building.type.goldProduction) * productivity * bonuses.goldIncomeMultiplier)
+            }
+        }
+        return passiveGold + buildingGold
     }
 
     /// Check if a specific research has been completed
@@ -112,6 +125,7 @@ struct GameState: Codable {
         case islands
         case epochTracker, completedResearches, activeResearch
         case settings, statistics, dailyLogin, completedAchievements, tutorialStep
+        case prestige
     }
 
     init(from decoder: Decoder) throws {
@@ -141,6 +155,7 @@ struct GameState: Codable {
         dailyLogin = (try? container.decodeIfPresent(DailyLoginState.self, forKey: .dailyLogin)) ?? DailyLoginState()
         completedAchievements = (try? container.decodeIfPresent(Set<String>.self, forKey: .completedAchievements)) ?? []
         tutorialStep = (try? container.decodeIfPresent(Int.self, forKey: .tutorialStep)) ?? 0
+        prestige = (try? container.decodeIfPresent(PrestigeState.self, forKey: .prestige)) ?? PrestigeState()
     }
 
     // MARK: - Demo/Initial State

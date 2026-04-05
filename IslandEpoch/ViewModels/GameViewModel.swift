@@ -105,7 +105,7 @@ final class GameViewModel: ObservableObject {
         // 4. Passive gold income (building gold handled in ProductionManager)
         let bonuses = ResearchEffectResolver.resolve(completedResearches: gameState.completedResearches)
         let baseGold = 1 + bonuses.extraGoldPerTick
-        let totalPassiveGold = Int(Double(baseGold) * bonuses.goldIncomeMultiplier)
+        let totalPassiveGold = Int(Double(baseGold) * bonuses.goldIncomeMultiplier * gameState.prestige.goldMultiplier)
         gameState.gold += totalPassiveGold
 
         // 5. Production
@@ -454,6 +454,57 @@ final class GameViewModel: ObservableObject {
         gameState = GameState.demo()
         AppLogger.general.info("New game started")
     }
+
+    // MARK: - Prestige
+
+    /// Stars that would be earned if prestiging now
+    var prestigeStarsAvailable: Int {
+        PrestigeState.starsForPrestige(
+            currentRunGold: gameState.statistics.totalGoldEarned,
+            currentEpoch: gameState.epochTracker.currentEpoch
+        )
+    }
+
+    /// Whether the player meets minimum requirements to prestige
+    var canPrestige: Bool {
+        gameState.epochTracker.currentEpoch >= PrestigeState.minimumEpochToPrestige
+    }
+
+    /// Perform prestige: reset progress, keep prestige state and settings
+    func performPrestige() {
+        guard canPrestige else { return }
+
+        let starsEarned = prestigeStarsAvailable
+        var prestige = gameState.prestige
+
+        // Update prestige state
+        prestige.totalStars += starsEarned
+        prestige.timesPrestiged += 1
+        prestige.highestEpochReached = max(prestige.highestEpochReached, gameState.epochTracker.currentEpoch)
+        prestige.lifetimeGoldEarned += gameState.statistics.totalGoldEarned
+
+        // Preserve settings and daily login
+        let settings = gameState.settings
+        let dailyLogin = gameState.dailyLogin
+        let achievements = gameState.completedAchievements
+
+        // Reset to fresh game
+        gameState = GameState.demo()
+
+        // Restore persistent state
+        gameState.prestige = prestige
+        gameState.settings = settings
+        gameState.dailyLogin = dailyLogin
+        gameState.completedAchievements = achievements
+        gameState.tutorialStep = -1 // Skip tutorial on prestige
+
+        // Apply starting gold bonus
+        gameState.gold += prestige.startingGoldBonus
+
+        saveGame()
+        HapticManager.success()
+        AppLogger.general.info("Prestiged! Earned \(starsEarned) stars (total: \(prestige.totalStars))")
+    }
     
     func deleteSave() {
         _ = saveManager.deleteSave()
@@ -495,6 +546,20 @@ final class GameViewModel: ObservableObject {
 
     func actualConsumptionRate() -> Inventory {
         productionManager.actualConsumptionRate(gameState: gameState)
+    }
+
+    /// Net resource rates (production - consumption) for the current island, keyed by ResourceType
+    func netResourceRates() -> [ResourceType: Int] {
+        let production = actualProductionRate()
+        let consumption = actualConsumptionRate()
+        var net: [ResourceType: Int] = [:]
+        for resource in ResourceType.allCases {
+            let p = production[resource] ?? 0
+            let c = consumption[resource] ?? 0
+            let diff = p - c
+            if diff != 0 { net[resource] = diff }
+        }
+        return net
     }
 
     // MARK: - Progression Helpers
